@@ -1,0 +1,15 @@
+name: gopr_sim
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - osmnx
+  - networkx
+  - geopandas
+  - rasterio
+  - simpy
+  - matplotlib
+  - numpy
+  - pandas
+  - jupyter
