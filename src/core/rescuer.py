@@ -1,7 +1,8 @@
 import enum
-from typing import Union
+from typing import Union, Any, Generator
 
 import simpy
+from simpy import Timeout
 
 from src.core.incident import Incident
 from src.routing.routing_interface import AbstractRoutingService
@@ -38,11 +39,21 @@ class Rescuer:
         self.process: simpy.Process | None = None
 
     def assign_incident (self, incident: Incident) -> simpy.Process:
+        """
+        przypisanie incydentu
+        :param incident:
+        :return: simpy.Process
+        """
         self.current_incident = incident
         self.process = self.env.process(self._mission_lifecycle())
         return self.process
 
-    def _travel_to(self, destination):
+    def _travel_to(self, destination) -> Generator[Timeout, Any, bool]:
+        """
+        pojedynczy krok
+        :param destination:
+        :return: bool
+        """
         path = self.routing_service.get_path(self.current_node, destination)
 
         if len(path) <= 1:
