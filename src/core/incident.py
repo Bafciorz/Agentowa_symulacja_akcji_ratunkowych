@@ -13,8 +13,8 @@ class Priority (enum.IntEnum):
 
 @dataclass
 class Incident:
-    incident_id : int
-    target_node = Union[int, str]
+    incident_id : str
+    target_node : Union[int, str]
     priority: Priority
     required_rescuers: int = 1
     rescue_duration: float  = 30.0 # czas akcji ratowniczej na miejscu
