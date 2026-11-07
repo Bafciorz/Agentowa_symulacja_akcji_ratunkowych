@@ -4,6 +4,7 @@ from typing import Union
 import simpy
 
 from src.core.incident import Incident
+from src.routing.routing_interface import AbstractRoutingService
 
 
 class RescuerState(enum.Enum):
@@ -20,7 +21,7 @@ class Rescuer:
         env: simpy.Environment,
         agent_id: str,
         base_node: Union[int, str],
-        routing_service,
+        routing_service: AbstractRoutingService,
         speed_factor: float = 1.0,
         is_volunteer: bool = False
     ):
@@ -35,3 +36,22 @@ class Rescuer:
         self.state: RescuerState = RescuerState.IDLE
         self.current_incident: Incident | None = None
         self.process: simpy.Process | None = None
+
+    def assingn_incident (self, incident: Incident) -> simpy.Process:
+        self.current_incident = incident
+        self.process = self.env.process(self._mission_lifecycle())
+        return self.process
+
+    def _travel_to(self, destination):
+        path = self.routing_service.get_path(self.current_node, destination)
+
+        if len(path) <= 1:
+            return True
+        for i in range(len(path) - 1):
+            u = path[i]
+            v = path[i + 1]
+
+            t_edge = self.routing_service.get_edge_travel_time(u, v, self.speed_factor)
+            yield self.env.timeout(t_edge)
+            self.current_node = v
+        return True
