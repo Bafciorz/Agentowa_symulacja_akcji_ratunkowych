@@ -37,7 +37,7 @@ class Rescuer:
         self.current_incident: Incident | None = None
         self.process: simpy.Process | None = None
 
-    def assingn_incident (self, incident: Incident) -> simpy.Process:
+    def assign_incident (self, incident: Incident) -> simpy.Process:
         self.current_incident = incident
         self.process = self.env.process(self._mission_lifecycle())
         return self.process
@@ -55,3 +55,43 @@ class Rescuer:
             yield self.env.timeout(t_edge)
             self.current_node = v
         return True
+
+    def _mission_lifecycle(self):
+        """
+        Cykl życia pojedynczej misji ratunkowej w czasie SimPy.
+        """
+        # 1. MOBILIZACJA: jeśli to ochotnik wzywany z bazy/domu
+        if self.is_volunteer and self.current_node == self.base_node:
+            self.state = RescuerState.MOBILIZING
+            print(f"[{self.env.now:.1f} min] {self.agent_id}: Wezwanie ochotnika. Mobilizacja (5 min)...")
+            yield self.env.timeout(5.0)
+
+        # 2. EN_ROUTE: Marsz do poszkodowanego
+        self.state = RescuerState.EN_ROUTE
+        print(
+            f"[{self.env.now:.1f} min] {self.agent_id}: Wyrusza do wypadku {self.current_incident.incident_id} (węzeł {self.current_incident.target_node})...")
+
+        reached_target = yield from self._travel_to(self.current_incident.target_node)
+        if not reached_target:
+            return  # Marsz został przerwany przez dyspozytora
+
+        # 3. ON_SCENE: Działania medyczne na miejscu wypadku
+        self.state = RescuerState.ON_SCENE
+        print(
+            f"[{self.env.now:.1f} min] {self.agent_id}: Dotarł na miejsce wypadku {self.current_incident.incident_id}. Udziela pomocy...")
+
+        yield self.env.timeout(self.current_incident.rescue_duration)
+        self.current_incident.is_resolved = True
+        print(
+            f"[{self.env.now:.1f} min] {self.agent_id}: Zakończył akcję ratunkową {self.current_incident.incident_id}!")
+
+        # 4. RETURNING: Powrót do bazy
+        if self.current_node != self.base_node:
+            self.state = RescuerState.RETURNING
+            print(f"[{self.env.now:.1f} min] {self.agent_id}: Wraca do bazy {self.base_node}...")
+            yield from self._travel_to(self.base_node)
+
+        # 5. IDLE: Ratownik z powrotem w bazie
+        self.state = RescuerState.IDLE
+        self.current_incident = None
+        print(f"[{self.env.now:.1f} min] {self.agent_id}: Jest w bazie. Status: IDLE (gotowy do kolejnych wezwań).")
