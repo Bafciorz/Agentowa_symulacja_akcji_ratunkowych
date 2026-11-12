@@ -55,16 +55,19 @@ class Rescuer:
         :return: bool
         """
         path = self.routing_service.get_path(self.current_node, destination)
-
         if len(path) <= 1:
             return True
         for i in range(len(path) - 1):
             u = path[i]
             v = path[i + 1]
-
             t_edge = self.routing_service.get_edge_travel_time(u, v, self.speed_factor)
-            yield self.env.timeout(t_edge)
-            self.current_node = v
+            try:
+                yield self.env.timeout(t_edge)
+                self.current_node = v
+            except simpy.Interrupt as inter:
+                self.current_node = v
+                print(f"[{self.env.now:.1f} min] {self.agent_id}: Otrzymano rozkaz przerwania marszu! ({inter.cause})")
+                return False
         return True
 
     def _mission_lifecycle(self):
@@ -100,7 +103,9 @@ class Rescuer:
         if self.current_node != self.base_node:
             self.state = RescuerState.RETURNING
             print(f"[{self.env.now:.1f} min] {self.agent_id}: Wraca do bazy {self.base_node}...")
-            yield from self._travel_to(self.base_node)
+            reached_base = yield from self._travel_to(self.base_node)
+            if not reached_base:
+                return
 
         # 5. IDLE: Ratownik z powrotem w bazie
         self.state = RescuerState.IDLE
