@@ -20,10 +20,18 @@ class MockRoutingService(AbstractRoutingService):
         eta_roughness: float = 1.0,
         weather: Optional[WeatherConditions] = None,
         speed_factor: float = 1.0,
+        c: float = 1.15,
+        theta_0: float = -2.6,
+        w: float = 14.5,
+        d: float = 0.22,
+        e: float = -0.0018,
+        off_path_factor: float = 0.67,
+        steep_slope_factor: float = 1.0,
         **kwargs
     ) -> float:
         """
-        Zwraca czas przejścia krawędzi (u -> v) w minutach.
+        Zwraca czas przejścia krawędzi (u -> v) w minutach dla mocka.
+        Sprawdza czy węzły leżą obok siebie.
         """
         is_numeric = False
         try:
