@@ -1,0 +1,148 @@
+import math
+from pathlib import Path
+from typing import List, Union, Optional
+import networkx as nx
+
+from src.routing.routing_interface import AbstractRoutingService
+from src.routing.weather_conditions import WeatherConditions
+from data.mappers.terrain_mapper import TerrainGraphMapper
+
+
+class TerrainRoutingService(AbstractRoutingService):
+    """
+    Serwis trasowania po grafie terenu (DEM) dla symulacji GOPR / WiSAR.
+    
+    Odpowiada za fizyczne przeliczanie kosztu przejścia pojedynczego kroku (krawędzi)
+    na bazie ukształtowania terenu, równania Lorentza (Campbell & Sullivan) oraz pogody.
+    """
+
+    def __init__(self, graph_or_path: Union[nx.DiGraph, str, Path]):
+        if isinstance(graph_or_path, (str, Path)):
+            mapper = TerrainGraphMapper()
+            self.graph: nx.DiGraph = mapper.load_graph(str(graph_or_path))
+        elif isinstance(graph_or_path, nx.DiGraph):
+            self.graph = graph_or_path
+        else:
+            raise TypeError("Oczekiwano nx.DiGraph lub ścieżki do pliku grafu GraphML.")
+
+    def get_edge_travel_time(
+        self,
+        u: Union[int, str],
+        v: Union[int, str],
+        on_path: bool = True,
+        eta_roughness: float = 1.0,
+        weather: Optional[WeatherConditions] = None,
+        speed_factor: float = 1.0,
+        c: float = 1.15,
+        theta_0: float = -2.6,
+        w: float = 14.5,
+        d: float = 0.22,
+        e: float = -0.0018,
+        off_path_factor: float = 0.67,
+        steep_slope_factor: float = 1.0,
+        **kwargs
+    ) -> float:
+        """
+        Zwraca czas pokonania trasy (krawędzi) od węzła u do węzła v, KTÓRE LEŻĄ OBOK SIEBIE (w minutach).
+        
+        Obliczenia bazują bezpośrednio na równaniach z kompendium:
+        1. Weryfikacja bezpośredniego sąsiedztwa u i v.
+        2. Dystans poziomy (dist_2d) i różnica wysokości (delta_h = z_v - z_u).
+        3. Odległość 3D = sqrt(dist_2d^2 + delta_h^2).
+        4. Nachylenie S = delta_h / dist_2d oraz kąt nachylenia theta w stopniach.
+        5. Prędkość bazowa v_base z asymetrycznej krzywej Lorentza (Campbell & Sullivan):
+           v_base = (c / (1 + ((theta - theta_0) / w)^2)) + d + e * theta
+        6. Modyfikatory:
+           - K_terrain: 1.0 (szlak) lub off_path_factor / max(1.0, eta_roughness) (poza szlakiem)
+           - K_steep: steep_slope_factor jeśli |S| > 0.27 (|theta| > 15 st.), inaczej 1.0
+           - K_env: z obiektu WeatherConditions (deszcz, śnieg, wiatr, widoczność)
+        7. Prędkość efektywna:
+           v_eff = max(v_base * K_terrain * K_steep * K_env * speed_factor, 0.05) [m/s]
+        8. Czas przejścia odcinka:
+           t_sec = dist_3d / v_eff -> zwracany w minutach: t_min = t_sec / 60.0.
+        """
+        # 1. Sprawdzenie czy węzły istnieją w grafie
+        if u not in self.graph:
+            raise KeyError(f"Węzeł startowy '{u}' nie istnieje w grafie terenu.")
+        if v not in self.graph:
+            raise KeyError(f"Węzeł docelowy '{v}' nie istnieje w grafie terenu.")
+
+        # 2. Weryfikacja czy węzły leżą bezpośrednio obok siebie (krawędź u -> v)
+        if not self.graph.has_edge(u, v):
+            raise ValueError(f"Węzły '{u}' oraz '{v}' nie leżą obok siebie (brak bezpośredniej krawędzi)!")
+
+        edge_data = self.graph.get_edge_data(u, v)
+
+        # 3. Pobranie dystansu 2D oraz różnicy wysokości
+        if "distance_2d" in edge_data and "elevation_change" in edge_data:
+            dist_2d = float(edge_data["distance_2d"])
+            delta_h = float(edge_data["elevation_change"])
+        else:
+            u_node = self.graph.nodes[u]
+            v_node = self.graph.nodes[v]
+            dx = float(v_node.get("x_metric", v_node.get("x", 0.0))) - float(u_node.get("x_metric", u_node.get("x", 0.0)))
+            dy = float(v_node.get("y_metric", v_node.get("y", 0.0))) - float(u_node.get("y_metric", u_node.get("y", 0.0)))
+            dist_2d = math.hypot(dx, dy)
+            delta_h = float(v_node.get("z", 0.0)) - float(u_node.get("z", 0.0))
+
+        # Jeśli krawędź ma w atrybutach własne parametry podłoża, mają one pierwszeństwo
+        actual_on_path = edge_data.get("on_path", on_path)
+        actual_roughness = float(edge_data.get("eta_roughness", eta_roughness))
+
+        # 4. Geometria odcinka
+        dist_2d_safe = max(dist_2d, 1e-6)
+        dist_3d = math.sqrt(dist_2d_safe**2 + delta_h**2)
+        slope_s = delta_h / dist_2d_safe
+        theta_deg = math.degrees(math.atan(slope_s))
+
+        # 5. Prędkość bazowa z asymetrycznej krzywej Lorentza (Campbell & Sullivan)
+        v_base = (c / (1.0 + ((theta_deg - theta_0) / w) ** 2)) + d + e * theta_deg
+        v_base = max(v_base, 0.08)
+
+        # 6. Modyfikator szlaku / nawierzchni (K_terrain)
+        if actual_on_path:
+            k_terrain = 1.0
+        else:
+            k_terrain = off_path_factor / max(1.0, actual_roughness)
+
+        # 7. Modyfikator stromości (K_steep) dla nachyleń > 15 st. (|S| > 0.27)
+        k_steep = steep_slope_factor if abs(slope_s) > 0.27 else 1.0
+
+        # 8. Modyfikator pogodowy (K_env)
+        k_env = weather.env_modifier if hasattr(weather, "env_modifier") else 1.0
+
+        # 9. Prędkość efektywna i czas przejścia
+        eff_speed_factor = max(speed_factor, 1e-6)
+        v_eff = max(v_base * k_terrain * k_steep * k_env * eff_speed_factor, 0.05)
+
+        travel_time_sec = dist_3d / v_eff
+        travel_time_min = travel_time_sec / 60.0
+
+        return travel_time_min
+
+    def get_path(
+        self,
+        origin: Union[int, str],
+        destination: Union[int, str],
+        **kwargs
+    ) -> List[Union[int, str]]:
+        """
+        Zwraca kolejność przechodzenia węzłów (ścieżkę) od origin do destination.
+        (Zostawione puste - do zaimplementowania w kolejnym kroku przy użyciu algorytmu A*).
+        """
+        pass
+
+    def get_total_time(
+        self,
+        origin: Union[int, str],
+        destination: Union[int, str],
+        **kwargs
+    ) -> float:
+        """
+        Zwraca łączny czas pokonania całej trasy na bazie get_path i get_edge_travel_time.
+        (Zostawione puste - do zaimplementowania w kolejnym kroku).
+        """
+        pass
+
+    # Alias dla zachowania zgodności
+    get_travel_time = get_total_time
