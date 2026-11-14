@@ -38,6 +38,8 @@ class Rescuer:
         self.current_incident: Incident | None = None
         self.process: simpy.Process | None = None
 
+        self.dispatcher: Any = None
+
     def assign_incident (self, incident: Incident) -> simpy.Process:
         """
         przypisanie incydentu
@@ -45,7 +47,11 @@ class Rescuer:
         :return: simpy.Process
         """
         self.current_incident = incident
-        self.process = self.env.process(self._mission_lifecycle())
+        if self.agent_id not in incident.assigned_rescuers:
+            incident.assigned_rescuers.append(self.agent_id)
+
+        if self.process is None or not self.process.is_alive:
+            self.process = self.env.process(self._mission_lifecycle())
         return self.process
 
     def _travel_to(self, destination) -> Generator[Timeout, Any, bool]:
@@ -81,33 +87,50 @@ class Rescuer:
             yield self.env.timeout(5.0)
 
         # 2. EN_ROUTE: Marsz do poszkodowanego
-        self.state = RescuerState.EN_ROUTE
-        print(
-            f"[{self.env.now:.1f} min] {self.agent_id}: Wyrusza do wypadku {self.current_incident.incident_id} (węzeł {self.current_incident.target_node})...")
-
-        reached_target = yield from self._travel_to(self.current_incident.target_node)
-        if not reached_target:
-            return  # Marsz został przerwany przez dyspozytora
-
-        # 3. ON_SCENE: Działania medyczne na miejscu wypadku
-        self.state = RescuerState.ON_SCENE
-        print(
-            f"[{self.env.now:.1f} min] {self.agent_id}: Dotarł na miejsce wypadku {self.current_incident.incident_id}. Udziela pomocy...")
-
-        yield self.env.timeout(self.current_incident.rescue_duration)
-        self.current_incident.is_resolved = True
-        print(
-            f"[{self.env.now:.1f} min] {self.agent_id}: Zakończył akcję ratunkową {self.current_incident.incident_id}!")
-
-        # 4. RETURNING: Powrót do bazy
-        if self.current_node != self.base_node:
-            self.state = RescuerState.RETURNING
-            print(f"[{self.env.now:.1f} min] {self.agent_id}: Wraca do bazy {self.base_node}...")
-            reached_base = yield from self._travel_to(self.base_node)
-            if not reached_base:
-                return
-
-        # 5. IDLE: Ratownik z powrotem w bazie
-        self.state = RescuerState.IDLE
-        self.current_incident = None
-        print(f"[{self.env.now:.1f} min] {self.agent_id}: Jest w bazie. Status: IDLE (gotowy do kolejnych wezwań).")
+        while True:
+            # Pętla obsługi incydentu (lub kolejnych incydentów z rzędu)
+            while self.current_incident is not None:
+                incident = self.current_incident
+                # 2. EN_ROUTE: Marsz do poszkodowanego
+                self.state = RescuerState.EN_ROUTE
+                print(
+                    f"[{self.env.now:.1f} min] {self.agent_id}: Wyrusza do wypadku {incident.incident_id} (węzeł {incident.target_node})...")
+                reached_target = yield from self._travel_to(incident.target_node)
+                if not reached_target:
+                    # Marsz przerwany przez dyspozytora (np. Triage) -> sprawdzamy nowy cel
+                    continue
+                # 3. ON_SCENE: Rejestracja dotarcia i zbiórka zespołu (simpy.AllOf)
+                self.state = RescuerState.ON_SCENE
+                incident.register_arrival(self.env, self.agent_id)
+                arrived = len(incident._rescuer_arrival_map)
+                print(
+                    f"[{self.env.now:.1f} min] {self.agent_id}: Dotarł na miejsce wypadku {incident.incident_id} [{arrived}/{incident.required_rescuers} ratowników].")
+                # Czekamy na resztę zespołu (dla 1 ratownika przechodzi od razu):
+                yield incident.get_team_assembly_condition(self.env)
+                # Działania medyczne / pakowanie do noszy:
+                print(
+                    f"[{self.env.now:.1f} min] {self.agent_id}: Rozpoczyna działania ratownicze ({incident.rescue_duration} min)...")
+                yield self.env.timeout(incident.rescue_duration)
+                incident.is_resolved = True
+                print(f"[{self.env.now:.1f} min] {self.agent_id}: Zakończył akcję ratunkową {incident.incident_id}!")
+                self.current_incident = None
+                # Sprawdzamy, czy dyspozytor ma kolejne zgłoszenie w kolejce:
+                if self.dispatcher and self.dispatcher.notify_rescuer_available(self):
+                    continue  # Idzie od razu do nowego wypadku!
+            # 4. RETURNING: Brak zadań w kolejce -> powrót do bazy
+            if self.current_node != self.base_node:
+                self.state = RescuerState.RETURNING
+                print(f"[{self.env.now:.1f} min] {self.agent_id}: Wraca do bazy {self.base_node}...")
+                reached_base = yield from self._travel_to(self.base_node)
+                if not reached_base:
+                    # Jeśli w drodze powrotnej dostał wezwanie -> wraca do pętli wypadku
+                    if self.current_incident is not None:
+                        continue
+            # 5. IDLE: Ratownik z powrotem w bazie
+            self.state = RescuerState.IDLE
+            print(f"[{self.env.now:.1f} min] {self.agent_id}: Jest w bazie. Status: IDLE (gotowy do kolejnych wezwań).")
+            # Jeśli coś wpadło do kolejki w ostatniej chwili:
+            if self.dispatcher and self.dispatcher.notify_rescuer_available(self):
+                continue
+            # Jeśli baza osiągnięta i brak zadań -> proces kończy bieg
+            break
