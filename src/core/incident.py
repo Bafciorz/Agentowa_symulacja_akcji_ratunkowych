@@ -54,3 +54,11 @@ class Incident:
                 event.succeed()
             return event
         return self._rescuer_arrival_map[rescuer_id]
+
+    def get_team_assembly_condition(self, env: simpy.Environment) -> simpy.AllOf:
+        """
+        Zwraca warunek simpy.AllOf, który odblokuje się w SimPy dokładnie w chwili,
+        gdy WSZYSCY wymagani ratownicy (required_rescuers) zameldują się na miejscu.
+        """
+        self.init_events(env)
+        return simpy.AllOf(env, self.arrival_events)
