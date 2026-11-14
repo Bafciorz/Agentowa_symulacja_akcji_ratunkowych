@@ -90,8 +90,14 @@ class Dispatcher:
         print(f"[{self.env.now:.1f} min] [TRIAGE PREEMPTION] Wywłaszczenie {victim_rescuer.agent_id}! "
               f"Porzuca {old_incident.incident_id} ({old_incident.priority.name}) "
               f"-> Przekierowany do {critical_incident.incident_id} ({critical_incident.priority.name})!")
-        self.pending_incidents.append(old_incident)
-        self.pending_incidents.sort(key=lambda inc: inc.priority, reverse=True)
+
+        # Wykreślamy ratownika ze starego incydentu i zwracamy incydent do kolejki oczekujących
+        if victim_rescuer.agent_id in old_incident.assigned_rescuers:
+            old_incident.assigned_rescuers.remove(victim_rescuer.agent_id)
+
+        if old_incident not in self.pending_incidents and not old_incident.is_resolved:
+            self.pending_incidents.append(old_incident)
+            self.pending_incidents.sort(key=lambda inc: int(inc.priority), reverse=True)
         if victim_rescuer.process and victim_rescuer.process.is_alive:
             victim_rescuer.process.interrupt(f"Triage: {critical_incident.incident_id}")
             victim_rescuer.assign_incident(critical_incident)
