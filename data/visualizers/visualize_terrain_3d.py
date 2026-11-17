@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Skrypt generujący trójwymiarową wizualizację terenu (HTML WebGL oraz PNG).
+Skrypt generujący trójwymiarową interaktywną wizualizację terenu (HTML WebGL).
 Lokalizacja: data/visualizers/visualize_terrain_3d.py
 Uruchomienie:
     python data/visualizers/visualize_terrain_3d.py
-    python data/visualizers/visualize_terrain_3d.py --show
 """
 
 import sys
@@ -18,16 +17,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from data.mappers.terrain_mapper import TerrainGraphMapper
-from data.visualizers.terrain_visualizer import (
-    plot_3d_matplotlib,
-    export_3d_interactive_html,
-    get_graph_step_meters
-)
+from data.visualizers.terrain_visualizer import export_3d_interactive_html
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Trójwymiarowa wizualizacja i interaktywna mapa 3D terenu z grafu."
+        description="Trójwymiarowa interaktywna mapa 3D (HTML/WebGL) terenu z grafu."
     )
     parser.add_argument(
         "--graph",
@@ -36,40 +31,24 @@ def main():
         help="Ścieżka do pliku GraphML (domyślnie: data/trails/gorce_terrain_grid.graphml)"
     )
     parser.add_argument(
+        "--output",
         "--output-html",
+        dest="output_html",
         type=str,
         default=None,
         help="Ścieżka do wyjściowego pliku HTML (domyślnie: data/trails/gorce_terrain_3d.html)"
-    )
-    parser.add_argument(
-        "--output-png",
-        type=str,
-        default=None,
-        help="Ścieżka do wyjściowego pliku PNG (domyślnie: data/trails/gorce_3d_terrain.png)"
-    )
-    parser.add_argument(
-        "--show",
-        action="store_true",
-        help="Otwiera interaktywne okno 3D na pulpicie (Matplotlib)"
-    )
-    parser.add_argument(
-        "--no-html",
-        action="store_true",
-        help="Wyłącza generowanie pliku HTML"
     )
 
     args = parser.parse_args()
 
     graph_path = Path(args.graph) if args.graph else PROJECT_ROOT / "data" / "trails" / "gorce_terrain_grid.graphml"
     output_html_path = Path(args.output_html) if args.output_html else PROJECT_ROOT / "data" / "trails" / "gorce_terrain_3d.html"
-    output_png_path = Path(args.output_png) if args.output_png else PROJECT_ROOT / "data" / "trails" / "gorce_3d_terrain.png"
 
     print("=" * 80)
-    print(" WIZUALIZACJA I EKSPLORACJA MAPY 3D TERENU (VISUALIZER)")
+    print(" INTERAKTYWNA WIZUALIZACJA 3D TERENU (HTML / WEBGL)")
     print("=" * 80)
-    print(f" Plik wejściowy grafu:      {graph_path}")
-    print(f" Plik modelu 3D HTML:       {output_html_path}")
-    print(f" Plik renderu 3D PNG:       {output_png_path}")
+    print(f" Plik wejściowy grafu:  {graph_path}")
+    print(f" Plik modelu 3D HTML:   {output_html_path}")
     print("=" * 80)
 
     if not graph_path.is_file():
@@ -82,36 +61,24 @@ def main():
 
     # 1. Odczyt grafu
     G = mapper.load_graph(str(graph_path))
+    area_name = G.graph.get("area_name", "Rejon Operacyjny GOPR - Gorce")
 
-    area_name = G.graph.get("area_name", "Gorce - Park Narodowy")
-    step_meters = get_graph_step_meters(G)
-
-    # 2. Renderowanie statycznego wykresu 3D do pliku PNG
-    print("\n[1/2] Generowanie renderu rzeźby terenu (Matplotlib 3D -> PNG)...")
-    plot_3d_matplotlib(
+    # 2. Eksport interaktywnego modelu 3D WebGL (Three.js) do pliku HTML
+    print("\n[*] Generowanie interaktywnego modelu 3D WebGL (Three.js -> HTML)...")
+    export_3d_interactive_html(
         graph=G,
-        save_path=str(output_png_path),
-        show=args.show,
-        title=f"Rzeźba Terenu 3D - {area_name} (siatka co {step_meters:.0f}m)"
+        output_html_path=str(output_html_path),
+        title=f"Model Rzeźby Terenu 3D - {area_name}"
     )
-
-    # 3. Eksport interaktywnego modelu 3D WebGL (Three.js) do pliku HTML
-    if not args.no_html:
-        print("\n[2/2] Generowanie interaktywnego modelu 3D WebGL (Three.js -> HTML)...")
-        export_3d_interactive_html(
-            graph=G,
-            output_html_path=str(output_html_path),
-            title=f"Model Rzeźby Terenu 3D - {area_name}"
-        )
 
     print("\n" + "=" * 80)
     print(" WIZUALIZACJA UKOŃCZONA SUKCESEM!")
     print("=" * 80)
-    print(f" 1. Statyczny obraz 3D:    {output_png_path}")
-    if not args.no_html:
-        print(f" 2. Interaktywna mapa 3D:  {output_html_path}")
-        print("    -> Kliknij dwukrotnie w plik HTML lub otwórz w przeglądarce (Chrome, Edge, Firefox)")
-        print("    -> Możesz obracać model myszką o 360°, przybliżać i włączać siatkę krawędzi!")
+    print(f" Interaktywna mapa 3D:  {output_html_path}")
+    print(" -> Otwórz plik w dowolnej przeglądarce (Chrome, Edge, Firefox).")
+    print(" -> Szlaki turystyczne i ich węzły są wyróżnione na CZERWONO.")
+    print(" -> Obracaj model myszką, przybliżaj i przełączaj widoczność szlaków oraz siatki.")
+    print(" -> Użyj przycisku 'Schowaj' w prawym górnym rogu panelu, aby ukryć okno informacyjne.")
     print("=" * 80)
 
 

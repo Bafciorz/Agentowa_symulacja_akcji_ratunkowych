@@ -22,13 +22,22 @@ from data.downloaders.terrain_downloader import TerrainDownloader
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Pobieranie i lokalny zapis danych geograficznych Parku Narodowego (granice i rzędne DEM)."
+        description="Pobieranie i lokalny zapis danych geograficznych dla Rejonu Operacyjnego GOPR w Gorcach (DEM)."
     )
     parser.add_argument(
-        "--area",
+        "--preset",
         type=str,
-        default="Gorczański Park Narodowy, Poland",
-        help="Nazwa obszaru do pobrania z OpenStreetMap"
+        default="gopr-gorce",
+        choices=["gopr-gorce"],
+        help="Profil obszaru operacyjnego (domyślnie: 'gopr-gorce' dla całego rejonu działań GOPR w Gorcach)"
+    )
+    parser.add_argument(
+        "--bbox",
+        nargs=4,
+        type=float,
+        metavar=("MIN_LON", "MIN_LAT", "MAX_LON", "MAX_LAT"),
+        default=None,
+        help="Opcjonalny własny prostokątny zakres: min_lon min_lat max_lon max_lat (np. 19.92 49.46 20.45 49.68)"
     )
     parser.add_argument(
         "--step",
@@ -46,67 +55,54 @@ def main():
         "--boundary-output",
         type=str,
         default=None,
-        help="Ścieżka do pliku GeoJSON z granicami (domyślnie: data/trails/park_boundary.geojson)"
+        help="Ścieżka do pliku GeoJSON z granicami (domyślnie: data/trails/gopr_boundary.geojson)"
     )
     parser.add_argument(
         "--dem-file",
         type=str,
         default=None,
-        help="Opcjonalna ścieżka do lokalnego pliku rastrowego GeoTIFF NMT"
-    )
-    parser.add_argument(
-        "--cache-file",
-        type=str,
-        default=None,
-        help="Ścieżka do pliku cache wysokości (domyślnie: data/dem/elevation_cache.json)"
-    )
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=70,
-        help="Liczba współrzędnych na zapytanie URL (zalecane: 60-80)"
-    )
-    parser.add_argument(
-        "--delay",
-        type=float,
-        default=0.45,
-        help="Odstęp w sekundach między zapytaniami do API"
+        help="Opcjonalna ścieżka do lokalnego pliku rastrowego GeoTIFF NMT (domyślnie: data/dem/gorce_dem.tif)"
     )
 
     args = parser.parse_args()
 
     output_points_path = Path(args.output) if args.output else PROJECT_ROOT / "data" / "dem" / "terrain_points.json"
-    output_boundary_path = Path(args.boundary_output) if args.boundary_output else PROJECT_ROOT / "data" / "trails" / "park_boundary.geojson"
-    cache_path = Path(args.cache_file) if args.cache_file else PROJECT_ROOT / "data" / "dem" / "elevation_cache.json"
+    output_boundary_path = Path(args.boundary_output) if args.boundary_output else PROJECT_ROOT / "data" / "trails" / "gopr_boundary.geojson"
+
+    area_display = "Rejon Operacyjny Grupy Podhalańskiej GOPR - Gorce" if not args.bbox else f"Własny BBox {args.bbox}"
 
     print("=" * 80)
-    print(" POBIERANIE I LOKALNY ZAPIS DANYCH GEOGRAFICZNYCH (DOWNLOADER)")
+    print(" POBIERANIE I LOKALNY ZAPIS DANYCH GEOGRAFICZNYCH GOPR (DOWNLOADER)")
     print("=" * 80)
-    print(f" Obszar badań:          {args.area}")
+    print(f" Obszar badań:          {area_display}")
     print(f" Rozdzielczość (krok):  {args.step:.1f} m")
     print(f" Plik punktów (JSON):   {output_points_path}")
     print(f" Plik granic (GeoJSON): {output_boundary_path}")
-    print(f" Plik cache wysokości:  {cache_path}")
-    print(f" Tryb pobierania:       BRAK LIMITU CZASOWEGO (automatyczne ponawianie przy 429)")
+    print(f" Model wysokości:       Copernicus DEM 30m (GeoTIFF / rasterio)")
     print("=" * 80)
 
     downloader = TerrainDownloader(metric_crs="EPSG:2180")
 
-    # 1. Pobranie i zapis granic
-    gdf_wgs84, polygon_metric = downloader.fetch_boundary(args.area)
+    # 1. Pobranie lub utworzenie granic obszaru operacyjnego GOPR
+    if args.bbox:
+        min_lon, min_lat, max_lon, max_lat = args.bbox
+        gdf_wgs84, polygon_metric = downloader.create_bbox_boundary(
+            min_lon=min_lon, min_lat=min_lat, max_lon=max_lon, max_lat=max_lat, area_name="Własny BBox"
+        )
+        area_title = f"BBox [{min_lon:.2f}, {min_lat:.2f}, {max_lon:.2f}, {max_lat:.2f}]"
+    else:
+        gdf_wgs84, polygon_metric = downloader.get_preset_boundary(args.preset)
+        area_title = "Rejon Operacyjny Grupy Podhalańskiej GOPR - Gorce"
+
     downloader.save_boundary_geojson(gdf_wgs84, str(output_boundary_path))
 
     # 2. Generowanie siatki w układzie metrycznym EPSG:2180
     grid_points = downloader.generate_grid_points(polygon_metric, step_meters=args.step)
 
-    # 3. Pobranie wysokości
+    # 3. Pobranie wysokości (z lokalnego pliku GeoTIFF lub automatycznie pobranego rastra)
     grid_points = downloader.assign_elevations(
         grid_points=grid_points,
-        dem_raster_path=args.dem_file,
-        cache_path=str(cache_path),
-        batch_size=args.batch_size,
-        request_delay=args.delay,
-        unlimited_wait=True
+        dem_raster_path=args.dem_file
     )
 
     # 4. Zapis punktów terenu z metadanymi
@@ -114,7 +110,7 @@ def main():
     bounds_metric = list(polygon_metric.bounds)
 
     metadata = {
-        "area_name": args.area,
+        "area_name": area_title,
         "step_meters": float(args.step),
         "metric_crs": "EPSG:2180",
         "created_at": datetime.datetime.now().isoformat(),
@@ -135,7 +131,7 @@ def main():
     print(f" Pobrana liczba punktów:   {len(grid_points):,}")
     print(f" Zakres wysokości n.p.m.:  min = {min(elevations):.1f} m, max = {max(elevations):.1f} m")
     print(f" Zapisano punkty terenu:   {output_points_path}")
-    print(f" Zapisano granice parku:   {output_boundary_path}")
+    print(f" Zapisano granice obszaru: {output_boundary_path}")
     print(" Następny krok: uruchom budowę grafu terenu (mapper):")
     print(" -> python data/mappers/build_terrain_graph.py")
     print("=" * 80)

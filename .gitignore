@@ -1,4 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE and editors
 .idea/
+.vscode/
+*.swp
+*.swo
+
+# Test and coverage caches
+.pytest_cache/
+.coverage
+
+# Simulation and terrain local data / caches
 cache/
-.crew/.DS_Store
-.DS_Store
+data/dem/cache_tiles/
+*.tif
+
+# Wygenerowane duże grafy terenu i modele 3D
+*.graphml
+data/trails/*.html

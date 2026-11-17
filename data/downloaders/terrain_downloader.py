@@ -7,27 +7,33 @@ Lokalizacja: data/downloaders/terrain_downloader.py
 
 import math
 import json
-import time
-import urllib.request
-import urllib.parse
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Optional, Tuple, Dict, Any, List, cast
 from pathlib import Path
 
 import numpy as np
-import osmnx as ox
+import rasterio
 import geopandas as gpd
 import shapely.geometry as geom
 from pyproj import Transformer
+
+PRESETS = {
+    "gopr-gorce": {
+        "name": "Rejon Operacyjny Grupy Podhalańskiej GOPR - Gorce",
+        "description": "Całe pasmo Gorców od Rabki-Zdroju po Krościenko nad Dunajcem i od Mszany Dolnej po Nowy Targ ze wszystkimi stacjami GOPR.",
+        "min_lon": 19.92,
+        "min_lat": 49.46,
+        "max_lon": 20.45,
+        "max_lat": 49.68
+    }
+}
 
 
 class TerrainDownloader:
     """
     Klasa odpowiedzialna za:
-    - Pobieranie obrysów granic obszaru (np. Parku Narodowego) z OpenStreetMap.
+    - Generowanie granic Rejonu Operacyjnego GOPR w Gorcach (lub własnego Bounding Boxa).
     - Tworzenie regularnej dyskretnej siatki punktów w układzie metrycznym PUWG 1992 (EPSG:2180).
-    - Pozyskiwanie wysokości n.p.m. dla punktów (Copernicus DEM 30m z Open-Meteo lub lokalnego pliku GeoTIFF).
-    - Cierpliwe ponawianie prób przy ograniczeniach serwera (HTTP 429) - brak limitu czasowego.
-    - Zapisywanie postępów w cache po każdej partii.
+    - Błyskawiczne pozyskiwanie wysokości n.p.m. dla punktów z satelitarnego rastra GeoTIFF (Copernicus DEM 30m).
     - Zapisywanie punktów do pliku JSON oraz granic do GeoJSON.
     """
 
@@ -36,18 +42,45 @@ class TerrainDownloader:
         self.transformer_to_metric = Transformer.from_crs("EPSG:4326", metric_crs, always_xy=True)
         self.transformer_to_wgs84 = Transformer.from_crs(metric_crs, "EPSG:4326", always_xy=True)
 
-    def fetch_boundary(self, area_name: str) -> Tuple[gpd.GeoDataFrame, geom.base.BaseGeometry]:
-        """Pobiera obrys granicy obszaru z OpenStreetMap i rzutuje do układu metrycznego."""
-        print(f"[*] Pobieranie granic obszaru z OpenStreetMap: '{area_name}'...")
-        gdf = ox.geocode_to_gdf(area_name)
-        gdf_metric = gdf.to_crs(self.metric_crs)
+    def create_bbox_boundary(
+        self,
+        min_lon: float,
+        min_lat: float,
+        max_lon: float,
+        max_lat: float,
+        area_name: str = "Obszar Bounding Box"
+    ) -> Tuple[gpd.GeoDataFrame, geom.base.BaseGeometry]:
+        """Tworzy prostokątny obszar (Bounding Box) o zadanym zakresie współrzędnych geograficznych."""
+        print(f"[*] Tworzenie obszaru Bounding Box: '{area_name}'...")
+        print(f"    Współrzędne WGS84: lon [{min_lon:.4f}, {max_lon:.4f}], lat [{min_lat:.4f}, {max_lat:.4f}]")
+        box_wgs84 = geom.box(min_lon, min_lat, max_lon, max_lat)
+        gdf = gpd.GeoDataFrame([{"name": area_name}], geometry=[box_wgs84], crs="EPSG:4326")
 
-        if hasattr(gdf_metric.geometry, "union_all"):
-            polygon_metric = gdf_metric.geometry.union_all()
-        else:
-            polygon_metric = gdf_metric.geometry.unary_union
-
+        # Rzutowanie narożników do układu metrycznego
+        x1, y1 = self.transformer_to_metric.transform(min_lon, min_lat)
+        x2, y2 = self.transformer_to_metric.transform(max_lon, max_lat)
+        polygon_metric = cast(
+            geom.base.BaseGeometry,
+            geom.box(min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
+        )
         return gdf, polygon_metric
+
+    def get_preset_boundary(self, preset_key: str) -> Tuple[gpd.GeoDataFrame, geom.base.BaseGeometry]:
+        """Zwraca geometrię dla zdefiniowanego profilu (presetu)."""
+        if preset_key not in PRESETS:
+            available = ", ".join(PRESETS.keys())
+            raise ValueError(f"Nieznany preset '{preset_key}'. Dostępne presety: {available}")
+
+        cfg = PRESETS[preset_key]
+        print(f"[*] Wybrano gotowy profil operacyjny: {cfg['name']}")
+        print(f"    Opis: {cfg['description']}")
+        return self.create_bbox_boundary(
+            min_lon=cfg["min_lon"],
+            min_lat=cfg["min_lat"],
+            max_lon=cfg["max_lon"],
+            max_lat=cfg["max_lat"],
+            area_name=cfg["name"]
+        )
 
     def save_boundary_geojson(self, gdf: gpd.GeoDataFrame, output_path: str):
         """Zapisuje geometrię granic do pliku GeoJSON."""
@@ -90,149 +123,40 @@ class TerrainDownloader:
     def assign_elevations(
         self,
         grid_points: List[Dict[str, Any]],
-        dem_raster_path: Optional[str] = None,
-        cache_path: Optional[str] = None,
-        batch_size: int = 70,
-        request_delay: float = 0.45,
-        unlimited_wait: bool = True
+        dem_raster_path: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
-        Pobiera rzędne wysokościowe (z) dla punktów terenu:
-        1. Z lokalnego pliku rastrowego GeoTIFF (DEM/NMT).
-        2. Lub online z API Copernicus DEM (Open-Meteo) bez limitu czasowego i z odpornością na HTTP 429.
+        Pobiera rzędne wysokościowe (z) dla punktów terenu z lokalnego pliku rastrowego GeoTIFF (Copernicus DEM 30m).
+        W razie braku pliku automatycznie uruchamia pobieranie kafelków satelitarnych.
         """
         print(f"[*] Pozyskiwanie rzędnych wysokościowych dla {len(grid_points):,} punktów...")
 
-        # Wariant A: Lokalny raster GeoTIFF
-        if dem_raster_path and Path(dem_raster_path).is_file():
-            import rasterio
-            print(f" -> Odczyt z lokalnego pliku NMT: {dem_raster_path}")
-            with rasterio.open(dem_raster_path) as src:
-                if src.crs and str(src.crs).upper() == self.metric_crs.upper():
-                    coords = [(p["x_metric"], p["y_metric"]) for p in grid_points]
-                else:
-                    coords = [(p["x"], p["y"]) for p in grid_points]
+        # Automatyczne wykrycie lub pobranie domyślnego pliku rastrowego gorce_dem.tif
+        if dem_raster_path is None:
+            default_dem = Path(__file__).resolve().parent.parent / "dem" / "gorce_dem.tif"
+            if not default_dem.is_file():
+                from data.downloaders.download_dem_raster import ensure_dem_raster
+                default_dem = ensure_dem_raster(default_dem)
+            dem_raster_path = str(default_dem)
 
-                samples = list(src.sample(coords))
-                for pt, sample in zip(grid_points, samples):
-                    val = float(sample[0])
-                    pt["z"] = round(val, 1) if val != src.nodata else 0.0
-            print(" -> Pomyślnie wczytano wysokości z pliku rastrowego.")
-            return grid_points
+        dem_file = Path(dem_raster_path)
+        if not dem_file.is_file():
+            raise FileNotFoundError(f"Nie odnaleziono pliku NMT/DEM: {dem_raster_path}")
 
-        # Wariant B: Pobieranie online z cache i ponawianiem
-        if cache_path is None:
-            cache_path = str(Path(__file__).resolve().parent.parent / "dem" / "elevation_cache.json")
-
-        cache_file = Path(cache_path)
-        cache: Dict[str, float] = {}
-        if cache_file.is_file():
-            try:
-                with open(cache_file, "r", encoding="utf-8") as f:
-                    cache = json.load(f)
-                print(f" -> Załadowano {len(cache):,} punktów z lokalnego cache ({cache_file.name}).")
-            except Exception as e:
-                print(f" [!] Błąd odczytu pliku cache: {e}")
-
-        missing_points: List[Dict[str, Any]] = []
-        cached_count = 0
-        for pt in grid_points:
-            key = f"{pt['x']:.4f}_{pt['y']:.4f}"
-            if key in cache:
-                pt["z"] = cache[key]
-                cached_count += 1
+        print(f" -> Odczyt z modelu rzeźby terenu GeoTIFF: {dem_file.name}")
+        with rasterio.open(str(dem_file)) as src:
+            if src.crs and str(src.crs).upper() == self.metric_crs.upper():
+                coords = [(p["x_metric"], p["y_metric"]) for p in grid_points]
             else:
-                missing_points.append(pt)
+                coords = [(p["x"], p["y"]) for p in grid_points]
 
-        if cached_count > 0:
-            print(f" -> Dopasowano z cache: {cached_count:,} / {len(grid_points):,} punktów ({(cached_count/len(grid_points)*100):.1f}%).")
+            samples = list(src.sample(coords))
+            for pt, sample in zip(grid_points, samples):
+                val = float(sample[0])
+                is_valid = (src.nodata is None or val != src.nodata) and not np.isnan(val) and val > -500
+                pt["z"] = round(val, 1) if is_valid else 0.0
 
-        if not missing_points:
-            print(" -> Wszystkie wysokości są już w lokalnym pliku cache!")
-            return grid_points
-
-        print(f" -> Do pobrania pozostało {len(missing_points):,} punktów.")
-        print(" -> Rozpoczynanie pobierania online (Copernicus DEM 30m)...")
-        if unlimited_wait:
-            print(" -> Tryb bez limitu czasowego: w razie limitu serwera (HTTP 429) program będzie cierpliwie czekać i ponawiać.")
-
-        total_missing = len(missing_points)
-        start_time = time.time()
-
-        for start_idx in range(0, total_missing, batch_size):
-            end_idx = min(start_idx + batch_size, total_missing)
-            batch = missing_points[start_idx:end_idx]
-
-            lats = ",".join(f"{p['y']:.4f}" for p in batch)
-            lons = ",".join(f"{p['x']:.4f}" for p in batch)
-            url = f"https://api.open-meteo.com/v1/elevation?latitude={lats}&longitude={lons}"
-
-            attempt = 0
-            success = False
-
-            while not success:
-                attempt += 1
-                try:
-                    req = urllib.request.Request(
-                        url,
-                        headers={"User-Agent": "GOPR-Simulation-Terrain/1.0 (Educational Academic Project)"}
-                    )
-                    with urllib.request.urlopen(req, timeout=30) as resp:
-                        data = json.loads(resp.read().decode())
-                        elevations = data.get("elevation", [])
-                        for pt, elev in zip(batch, elevations):
-                            val = round(float(elev), 1) if elev is not None else 0.0
-                            pt["z"] = val
-                            key = f"{pt['x']:.4f}_{pt['y']:.4f}"
-                            cache[key] = val
-
-                        success = True
-
-                        # Zapis cache na dysk na bieżąco po KAŻDEJ udanej partii
-                        try:
-                            cache_file.parent.mkdir(parents=True, exist_ok=True)
-                            with open(cache_file, "w", encoding="utf-8") as f:
-                                json.dump(cache, f, indent=2)
-                        except Exception:
-                            pass
-
-                except urllib.error.HTTPError as err:
-                    if err.code == 429:
-                        wait_seconds = min(5 * attempt, 60)
-                        print(
-                            f"\n [HTTP 429 - Limit zapytań serwera] Oczekiwanie {wait_seconds}s przed ponowieniem (próba {attempt})...",
-                            flush=True
-                        )
-                        time.sleep(wait_seconds)
-                    else:
-                        print(f"\n [Błąd HTTP {err.code}: {err.reason}] Oczekiwanie 5s (próba {attempt})...", flush=True)
-                        time.sleep(5)
-                except Exception as err:
-                    print(f"\n [Błąd połączenia/sieci: {err}] Oczekiwanie 5s (próba {attempt})...", flush=True)
-                    time.sleep(5)
-
-                if not unlimited_wait and attempt >= 10:
-                    print(f"\n [!] Przekroczono limit prób w partii {start_idx}-{end_idx}.")
-                    break
-
-            time.sleep(request_delay)
-
-            done_so_far = cached_count + end_idx
-            pct = done_so_far / len(grid_points) * 100.0
-            elapsed = time.time() - start_time
-            rate = end_idx / elapsed if elapsed > 0 else 1.0
-            eta_seconds = (total_missing - end_idx) / rate if rate > 0 else 0
-            eta_min = int(eta_seconds // 60)
-            eta_sec = int(eta_seconds % 60)
-
-            print(
-                f"\r -> Postęp pobierania: {done_so_far:,} / {len(grid_points):,} ({pct:.1f}%) | "
-                f"Pozostały szacowany czas: {eta_min:02d}m {eta_sec:02d}s",
-                end="",
-                flush=True
-            )
-
-        print(f"\n[*] Pobieranie wysokości zakończone! Zaktualizowano cache w: {cache_file.name}")
+        print(f" -> Pomyślnie wczytano wysokości dla wszystkich {len(grid_points):,} punktów w ułamku sekundy!")
         return grid_points
 
     def save_terrain_points(

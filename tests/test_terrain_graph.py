@@ -98,3 +98,23 @@ def test_points_and_graph_save_load_lifecycle():
         content = html_file.read_text(encoding="utf-8")
         assert "three.min.js" in content
         assert "Test 3D" in content
+
+
+def test_preset_and_bbox_boundary():
+    downloader = TerrainDownloader(metric_crs="EPSG:2180")
+
+    # Test gotowego presetu gopr-gorce
+    gdf_preset, poly_metric = downloader.get_preset_boundary("gopr-gorce")
+    assert not gdf_preset.empty
+    assert poly_metric.area > 0
+    minx, miny, maxx, maxy = poly_metric.bounds
+    # Upewniamy się, że to obszar o szerokości kilkudziesięciu kilometrów
+    width_km = (maxx - minx) / 1000.0
+    height_km = (maxy - miny) / 1000.0
+    assert 30.0 < width_km < 50.0
+    assert 20.0 < height_km < 35.0
+
+    # Test własnego BBox
+    gdf_box, poly_box = downloader.create_bbox_boundary(20.0, 49.5, 20.1, 49.6, area_name="Test Box")
+    assert not gdf_box.empty
+    assert poly_box.area > 0
