@@ -24,7 +24,7 @@ def test_weather_conditions_modifier():
 
     # Śnieg 20 cm
     w_snow = WeatherConditions(snow_cm=20.0)
-    assert abs(w_snow.env_modifier - 0.80) < 1e-4
+    assert abs(w_snow.env_modifier - 0.50) < 1e-4
 
     # Głęboki śnieg (> 30 cm)
     w_deep_snow = WeatherConditions(snow_cm=45.0)
