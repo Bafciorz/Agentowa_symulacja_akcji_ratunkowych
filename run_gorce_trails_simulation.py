@@ -52,23 +52,31 @@ def main():
     routing = GorceTrailRoutingService(default_weather=weather)
 
     # 4. Rozmieszczenie ratowników w bazach GOPR:
-    # - Stacja Centralna na Turbaczu (dyżurny ratownik zawodowy)
-    # - Dolna stacja Nowy Targ Kowaniec (ratownik zawodowy ze sprzętem)
-    # - Podstacja Schronisko Stare Wierchy (ratownik ochotnik)
+    # W Stacji Centralnej na Turbaczu stacjonuje 2 ratowników dyżurnych (zespół stacjonarny).
+    # W dolnej stacji Kowaniec stacjonuje patrol zmotoryzowany (quad gąsienicowy / skuter śnieżny).
+    # Na Starych Wierchach stacjonuje ratownik ochotnik.
     rescuer_alfa = Rescuer(
         env,
         agent_id="GOPR_Alfa",
         base_node="Schronisko_Turbacz",
         routing_service=routing,
-        speed_factor=1.1,
+        speed_factor=1.15,
         is_volunteer=False
     )
     rescuer_brawo = Rescuer(
         env,
         agent_id="GOPR_Brawo",
+        base_node="Schronisko_Turbacz",
+        routing_service=routing,
+        speed_factor=1.10,
+        is_volunteer=False
+    )
+    rescuer_quad = Rescuer(
+        env,
+        agent_id="GOPR_Quad",
         base_node="Kowaniec_NowyTarg",
         routing_service=routing,
-        speed_factor=1.0,
+        speed_factor=2.6,  # Pojazd gąsienicowy / skuter śnieżny GOPR do szybkiego wjazdu na grań
         is_volunteer=False
     )
     rescuer_ochotnik = Rescuer(
@@ -76,11 +84,11 @@ def main():
         agent_id="GOPR_Ochotnik",
         base_node="Stare_Wierchy",
         routing_service=routing,
-        speed_factor=0.95,
+        speed_factor=1.05,
         is_volunteer=True
     )
 
-    rescuers = [rescuer_alfa, rescuer_brawo, rescuer_ochotnik]
+    rescuers = [rescuer_alfa, rescuer_brawo, rescuer_quad, rescuer_ochotnik]
     dispatcher = Dispatcher(env, rescuers, routing_service=routing)
 
     incidents = []
@@ -96,7 +104,7 @@ def main():
             target_node="Polana_Gabrowska",
             priority=Priority.LOW,
             required_rescuers=1,
-            rescue_duration=20.0,
+            rescue_duration=15.0,
             created_at=env.now
         )
         incidents.append(inc1)
@@ -111,7 +119,7 @@ def main():
             target_node="Kiczora",
             priority=Priority.HIGH,
             required_rescuers=2,
-            rescue_duration=30.0,
+            rescue_duration=20.0,
             created_at=env.now
         )
         incidents.append(inc2)
@@ -126,14 +134,14 @@ def main():
             target_node="Hala_Dluga",
             priority=Priority.CRITICAL,
             required_rescuers=1,
-            rescue_duration=25.0,
+            rescue_duration=20.0,
             created_at=env.now
         )
         incidents.append(inc_crit)
         dispatcher.handle_incident(inc_crit)
 
         # ZDARZENIE 4 (t=18.0): Turysta zgubił się w wiatrołomach w Dolinie Kamienicy poza szlakiem
-        # Bardzo trudny teren pozaszlakowy (wiatrołomy, zwalone pnie świerkowe)
+        # Trudny teren pozaszlakowy (wiatrołomy, zwalone pnie świerkowe)
         yield env.timeout(6.0)
         print(f"\n[{env.now:.1f} min] >>> ZGŁOSZENIE: POSZUKIWANIE POZA SZLAKIEM (WIATROŁOMY KAMIENICY) <<<")
         inc4 = Incident(
@@ -141,7 +149,7 @@ def main():
             target_node="Dolina_Kamienicy_Wiatrolomy",
             priority=Priority.MEDIUM,
             required_rescuers=1,
-            rescue_duration=35.0,
+            rescue_duration=25.0,
             created_at=env.now
         )
         incidents.append(inc4)
@@ -149,20 +157,31 @@ def main():
 
     env.process(gorce_duty_scenario())
 
-    # 6. Uruchomienie zegara symulacji na 150 minut
-    env.run(until=150.0)
+    # 6. Uruchomienie zegara symulacji na 180 minut (3-godzinny dyżur)
+    env.run(until=180.0)
 
     # 7. Raport końcowy z przebiegu dyżuru
     print("\n" + "=" * 85)
     print("                     PODSUMOWANIE DYŻURU GOPR GORCE")
     print("=" * 85)
     print(f"Łączny czas trwania dyżuru: {env.now:.1f} minut")
-    print(f"Liczba zgłoszeń w kolejce oczekujących: {len(dispatcher.pending_incidents)}")
+    print(f"Liczba zgłoszeń w kolejce oczekujących dyspozytora: {len(dispatcher.pending_incidents)}")
 
     print("\nStatus poszkodowanych na szlakach:")
     for inc in incidents:
         loc_name = GORCE_TRAIL_NODES.get(inc.target_node, {}).get("name", inc.target_node)
-        status = "ROZWIĄZANY (Udzielono pomocy)" if inc.is_resolved else "OCZEKUJE W KOLEJCE"
+        if inc.is_resolved:
+            status = "ROZWIĄZANY (Udzielono pomocy medycznej)"
+        elif any(r.state.name == "ON_SCENE" and r.current_incident == inc for r in dispatcher.rescuers):
+            assigned = [r.agent_id for r in dispatcher.rescuers if r.current_incident == inc]
+            status = f"W TRAKCIE AKCJI NA MIEJSCU (Ratownicy: {', '.join(assigned)})"
+        elif len(inc.assigned_rescuers) >= inc.required_rescuers:
+            status = f"W TRAKCIE DOJAZDU (Ratownicy w drodze: {', '.join(inc.assigned_rescuers)})"
+        elif len(inc.assigned_rescuers) > 0:
+            status = f"CZĘŚCIOWO OBSADZONY (W drodze: {', '.join(inc.assigned_rescuers)}, czeka na wsparcie)"
+        else:
+            status = "OCZEKUJE W KOLEJCE DYSPOZYTORA"
+
         print(f" - [{inc.priority.name:8s}] {inc.incident_id:26s} | Miejsce: {loc_name:30s} -> {status}")
 
     print("\nKońcowy stan ratowników:")
