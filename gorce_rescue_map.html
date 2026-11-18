@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>GOPR Gorce - Symulacja Akcji Ratunkowych (DES + ABM)</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        #map { width: 100vw; height: 100vh; }
+        .hud-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            max-width: 360px;
+            backdrop-filter: blur(8px);
+            border: 1px solid #e2e8f0;
+        }
+        .hud-title { font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+        .hud-sub { font-size: 12px; color: #64748b; margin-bottom: 12px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge-critical { background: #fee2e2; color: #991b1b; }
+        .badge-high { background: #ffedd5; color: #9a3412; }
+        .badge-low { background: #e0f2fe; color: #075985; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 5px; color: #334155; }
+        .legend-color { width: 18px; height: 4px; border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="hud-panel">
+        <div class="hud-title">
+            <span>🏔️ GOPR GORCE - DYŻUR OPERACYJNY</span>
+        </div>
+        <div class="hud-sub">Symulacja Agentowa DES (SimPy) + Fizyka Terenu (Campbell & Sullivan)</div>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0;">
+        <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #0f172a;">Legenda Szlaków:</div>
+        <div class="legend-item"><div class="legend-color" style="background: #dc2626;"></div> Główny Szlak Beskidzki (GSB)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #16a34a;"></div> Szlak Zielony GPN (Kudłoń)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #eab308;"></div> Szlak Żółty (Kowaniec - Turbacz)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #000; border: 1px dashed #666;"></div> Teren pozaszlakowy (wiatrołomy)</div>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0;">
+        <div style="font-size: 11px; color: #475569;">
+            <b>Stacje GOPR:</b> Schronisko Turbacz, Kowaniec, Stare Wierchy<br>
+            <b>Model terenu:</b> Asymetria Lorentza + WiSAR + Pogoda
+        </div>
+    </div>
+
+    <script>
+        const map = L.map('map').setView([49.544, 20.115], 13);
+
+        // Podkład Topograficzny OpenTopoMap (doskonały do gór ze strefami poziomic)
+        const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            maxZoom: 17,
+            attribution: 'Map data: &copy; OpenStreetMap, SRTM | Map style: &copy; OpenTopoMap'
+        }).addTo(map);
+
+        const nodes = [{"id": "Schronisko_Turbacz", "name": "Schronisko PTTK Turbacz", "lat": 49.5428, "lon": 20.1116, "z": 1283.0, "is_base": true, "desc": "Główna Stacja Ratunkowa GOPR w Gorcach (dyżur całoroczny)"}, {"id": "Turbacz_Szczyt", "name": "Turbacz (Szczyt)", "lat": 49.543, "lon": 20.1118, "z": 1310.0, "is_base": false, "desc": "Najwyższy szczyt Gorców (1310 m n.p.m.)"}, {"id": "Hala_Dluga", "name": "Hala Długa", "lat": 49.5445, "lon": 20.117, "z": 1210.0, "is_base": false, "desc": "Rozległa hala pasterska pod Turbaczem (szlak czerwony GSB)"}, {"id": "Polana_Gabrowska", "name": "Polana Gabrowska", "lat": 49.546, "lon": 20.132, "z": 1265.0, "is_base": false, "desc": "Węzeł szlaków czerwonego (GSB), zielonego i żółtego"}, {"id": "Kiczora", "name": "Kiczora (Szczyt)", "lat": 49.5432, "lon": 20.144, "z": 1282.0, "is_base": false, "desc": "Drugi szczyt pasma Turbacza, widok na Tatry i Babią Górę"}, {"id": "Przelecz_Knurowska", "name": "Przełęcz Knurowska", "lat": 49.5165, "lon": 20.187, "z": 846.0, "is_base": false, "desc": "Przełęcz drogowa, punkt styku z karetkami Pogotowia Ratunkowego"}, {"id": "Stare_Wierchy", "name": "Schronisko Stare Wierchy", "lat": 49.56, "lon": 20.024, "z": 968.0, "is_base": true, "desc": "Podstacja dyżurna GOPR na zachodnim ramieniu pasma"}, {"id": "Obidowiec", "name": "Obidowiec", "lat": 49.553, "lon": 20.065, "z": 1106.0, "is_base": false, "desc": "Szczyt na szlaku czerwonym między Turbaczem a Starymi Wierchami"}, {"id": "Kowaniec_NowyTarg", "name": "Kowaniec (Nowy Targ)", "lat": 49.508, "lon": 20.061, "z": 620.0, "is_base": true, "desc": "Dolna baza GOPR w Nowym Targu, mobilizacja ratowników i dojazd quadem"}, {"id": "Jaworzyna_Kamienicka", "name": "Jaworzyna Kamienicka", "lat": 49.554, "lon": 20.148, "z": 1288.0, "is_base": false, "desc": "Polana z zabytkową Kapliczką Bulandy (szlak zielony GPN)"}, {"id": "Kudlon", "name": "Kudłoń (Szczyt)", "lat": 49.574, "lon": 20.157, "z": 1225.0, "is_base": false, "desc": "Północny rejon Gorczańskiego Parku Narodowego, skalne ostańce"}, {"id": "Dolina_Kamienicy_Wiatrolomy", "name": "Dolina Kamienicy (Poza szlakiem)", "lat": 49.565, "lon": 20.16, "z": 950.0, "is_base": false, "desc": "Teren pozaszlakowy: gęsty las, strome żleby i wiatrołomy świerkowe"}];
+        const edges = [{"u": "Schronisko_Turbacz", "v": "Turbacz_Szczyt", "coords": [[49.5428, 20.1116], [49.543, 20.1118]], "trail_name": "Szlak dojściowy na Szczyt", "color": "red", "on_path": true, "dist_m": 37.8}, {"u": "Hala_Dluga", "v": "Schronisko_Turbacz", "coords": [[49.5445, 20.117], [49.5428, 20.1116]], "trail_name": "Główny Szlak Beskidzki (GSB)", "color": "red", "on_path": true, "dist_m": 439.4}, {"u": "Hala_Dluga", "v": "Polana_Gabrowska", "coords": [[49.5445, 20.117], [49.546, 20.132]], "trail_name": "Główny Szlak Beskidzki (GSB)", "color": "red", "on_path": true, "dist_m": 1097.1}, {"u": "Kiczora", "v": "Polana_Gabrowska", "coords": [[49.5432, 20.144], [49.546, 20.132]], "trail_name": "Główny Szlak Beskidzki (GSB)", "color": "red", "on_path": true, "dist_m": 920.8}, {"u": "Kiczora", "v": "Przelecz_Knurowska", "coords": [[49.5432, 20.144], [49.5165, 20.187]], "trail_name": "Główny Szlak Beskidzki (GSB)", "color": "red", "on_path": true, "dist_m": 4317.9}, {"u": "Obidowiec", "v": "Schronisko_Turbacz", "coords": [[49.553, 20.065], [49.5428, 20.1116]], "trail_name": "Główny Szlak Beskidzki (Zachód)", "color": "red", "on_path": true, "dist_m": 3555.0}, {"u": "Obidowiec", "v": "Stare_Wierchy", "coords": [[49.553, 20.065], [49.56, 20.024]], "trail_name": "Główny Szlak Beskidzki (Zachód)", "color": "red", "on_path": true, "dist_m": 3063.9}, {"u": "Kowaniec_NowyTarg", "v": "Schronisko_Turbacz", "coords": [[49.508, 20.061], [49.5428, 20.1116]], "trail_name": "Szlak Żółty (Nowy Targ - Turbacz)", "color": "gold", "on_path": true, "dist_m": 5363.0}, {"u": "Jaworzyna_Kamienicka", "v": "Polana_Gabrowska", "coords": [[49.554, 20.148], [49.546, 20.132]], "trail_name": "Szlak Zielony GPN", "color": "green", "on_path": true, "dist_m": 1458.2}, {"u": "Jaworzyna_Kamienicka", "v": "Kudlon", "coords": [[49.554, 20.148], [49.574, 20.157]], "trail_name": "Szlak Zielony GPN", "color": "green", "on_path": true, "dist_m": 2317.8}, {"u": "Dolina_Kamienicy_Wiatrolomy", "v": "Kudlon", "coords": [[49.565, 20.16], [49.574, 20.157]], "trail_name": "Teren pozaszlakowy (wiatrołomy i zwalone pnie)", "color": "black", "on_path": false, "dist_m": 1060.3}];
+        const incidents = [];
+
+        // Rysowanie krawędzi (szlaków)
+        edges.forEach(e => {
+            const isDash = !e.on_path;
+            const poly = L.polyline(e.coords, {
+                color: e.color === 'black' ? '#000000' : e.color,
+                weight: isDash ? 3 : 5,
+                dashArray: isDash ? '6, 8' : null,
+                opacity: 0.85
+            }).addTo(map);
+
+            poly.bindPopup(`<b>${e.trail_name}</b><br>Dystans 3D: ${e.dist_m} m<br>${e.on_path ? 'Szlak znakowany' : '⚠️ Trudny teren pozaszlakowy'}`);
+        });
+
+        // Rysowanie węzłów
+        nodes.forEach(n => {
+            const markerColor = n.is_base ? '#1d4ed8' : '#475569';
+            const radius = n.is_base ? 9 : 6;
+            const circle = L.circleMarker([n.lat, n.lon], {
+                radius: radius,
+                fillColor: markerColor,
+                color: '#ffffff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.95
+            }).addTo(map);
+
+            circle.bindPopup(`<b>${n.name}</b> (${n.z} m n.p.m.)<br>${n.desc}`);
+        });
+
+        // Rysowanie zdarzeń ratunkowych
+        incidents.forEach(inc => {
+            let pColor = '#0284c7';
+            if (inc.priority === 'CRITICAL') pColor = '#dc2626';
+            else if (inc.priority === 'HIGH') pColor = '#ea580c';
+
+            const incMarker = L.circleMarker([inc.lat, inc.lon], {
+                radius: 12,
+                fillColor: pColor,
+                color: '#ffffff',
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(map);
+
+            const statusTxt = inc.is_resolved ? '✅ ROZWIĄZANY' : '⏳ W TRAKCIE / KOLEJKA';
+            incMarker.bindPopup(`
+                <div style="font-family: sans-serif;">
+                    <b style="color: ${pColor};">[${inc.priority}] ${inc.id}</b><br>
+                    <b>Miejsce:</b> ${inc.node_name}<br>
+                    <b>Wymaganych ratowników:</b> ${inc.required}<br>
+                    <b>Czas akcji na miejscu:</b> ${inc.duration} min<br>
+                    <b>Status:</b> ${statusTxt}
+                </div>
+            `);
+        });
+    </script>
+</body>
+</html>

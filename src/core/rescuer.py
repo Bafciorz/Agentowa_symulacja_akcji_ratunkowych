@@ -66,7 +66,7 @@ class Rescuer:
         for i in range(len(path) - 1):
             u = path[i]
             v = path[i + 1]
-            t_edge = self.routing_service.get_edge_travel_time(u, v, self.speed_factor)
+            t_edge = self.routing_service.get_edge_travel_time(u, v, speed_factor=self.speed_factor)
             try:
                 yield self.env.timeout(t_edge)
                 self.current_node = v
