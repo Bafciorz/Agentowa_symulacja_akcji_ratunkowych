@@ -1,6 +1,7 @@
-from typing import List, Union
+from typing import List, Union, Optional
 
 from src.routing.routing_interface import AbstractRoutingService
+from src.routing.weather_conditions import WeatherConditions
 
 
 class MockRoutingService(AbstractRoutingService):
@@ -16,7 +17,8 @@ class MockRoutingService(AbstractRoutingService):
     def get_path(
         self,
         origin: Union[int, str],
-        destination: Union[int, str]
+        destination: Union[int, str],
+        **kwargs
     ) -> List[Union[int, str]]:
         """
         Zwraca sekwencję węzłów.
@@ -30,30 +32,55 @@ class MockRoutingService(AbstractRoutingService):
             u, v = int(origin), int(destination)
             step = 1 if v >= u else -1
             return list(range(u, v + step, step))
-        except ValueError:
+        except (ValueError, TypeError):
             return [origin, destination]
 
     def get_edge_travel_time(
         self,
         u: Union[int, str],
         v: Union[int, str],
-        speed_factor: float = 1.0
+        *args,
+        on_path: bool = True,
+        eta_roughness: float = 1.0,
+        weather: Optional[WeatherConditions] = None,
+        speed_factor: float = 1.0,
+        **kwargs
     ) -> float:
         """
-        Zwraca czas przejścia krawędzi (u -> v) w minutach z uwzględnieniem speed_factor.
+        Zwraca czas przejścia krawędzi (u -> v) w minutach z uwzględnieniem speed_factor i warunków.
         """
-        return self.default_edge_time / speed_factor
+        if args and isinstance(args[0], (int, float)):
+            speed_factor = float(args[0])
+        elif isinstance(on_path, (int, float)) and not isinstance(on_path, bool):
+            speed_factor = float(on_path)
 
-    def get_travel_time(
+        eff_factor = max(speed_factor, 1e-6)
+        k_env = weather.env_modifier if hasattr(weather, "env_modifier") else 1.0
+        k_terrain = 1.0 if on_path else (0.67 / max(1.0, eta_roughness))
+
+        return self.default_edge_time / (k_terrain * k_env * eff_factor)
+
+    def get_total_time(
         self,
         origin: Union[int, str],
         destination: Union[int, str],
-        speed_factor: float = 1.0
+        *args,
+        speed_factor: float = 1.0,
+        **kwargs
     ) -> float:
         """
-        Zwraca łączny czas podróży (ETA) w minutach dla całej ścieżki.
+        Zwraca łączny czas pokonania całej trasy na bazie get_path i get_edge_travel_time.
         """
+        if args and isinstance(args[0], (int, float)):
+            speed_factor = float(args[0])
+
         path = self.get_path(origin, destination)
         if len(path) <= 1:
             return 0.0
-        return (len(path) - 1) * self.get_edge_travel_time(path[0], path[1], speed_factor)
+
+        total = 0.0
+        for u, v in zip(path[:-1], path[1:]):
+            total += self.get_edge_travel_time(u, v, speed_factor=speed_factor, **kwargs)
+        return total
+
+    get_travel_time = get_total_time
