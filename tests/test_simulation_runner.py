@@ -5,9 +5,7 @@ import pytest
 from src.core.incident import Priority
 from src.metrics.simulation_runner import (
     BenchmarkDataset,
-    generate_benchmark_dataset,
-    save_benchmark_to_json,
-    load_benchmark_from_json,
+    BaseStaffing,
     run_simulation_evaluation,
     SimulationResults
 )
@@ -19,7 +17,7 @@ def test_benchmark_dataset_class_features():
     - generowanie, długość, iteracja, indeksowanie,
     - metryki zbioru: total_duration_hours, priority_breakdown,
     - klonowanie,
-    - zapis i odczyt z pliku JSON.
+    - zapis i odczyt z pliku JSON z metadanymi.
     """
     dataset = BenchmarkDataset.generate(num_incidents=30, seed=123)
 
@@ -59,8 +57,8 @@ def test_benchmark_generation_and_reproducibility():
     - czasy zgłoszeń są ściśle rosnące (oś czasu SimPy),
     - determinizm z ziarna (seed=42): dwa wywołania dają identyczne zdarzenia.
     """
-    bench1 = generate_benchmark_dataset(num_incidents=100, seed=42)
-    bench2 = generate_benchmark_dataset(num_incidents=100, seed=42)
+    bench1 = BenchmarkDataset.generate(num_incidents=100, seed=42)
+    bench2 = BenchmarkDataset.generate(num_incidents=100, seed=42)
 
     assert len(bench1) == 100
     assert len(bench2) == 100
@@ -77,23 +75,25 @@ def test_benchmark_generation_and_reproducibility():
         assert inc1.created_at == inc2.created_at
 
 
-def test_benchmark_json_serialization():
-    """Weryfikacja zapisu i odczytu zbioru benchmarkowego z pliku JSON."""
-    incidents = generate_benchmark_dataset(num_incidents=20, seed=99)
+def test_base_staffing_structure_and_conversion():
+    """Weryfikacja uniwersalnego konwertera BaseStaffing.from_any()."""
+    # 1. Z int
+    s1 = BaseStaffing.from_any(3)
+    assert s1.professionals == 3
+    assert s1.volunteers == 0
+    assert s1.quads == 0
+    assert s1.total_rescuers == 3
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        json_path = Path(tmp_dir) / "benchmark_20.json"
-        save_benchmark_to_json(incidents, json_path)
+    # 2. Ze słownika
+    s2 = BaseStaffing.from_any({"professionals": 2, "volunteers": 1, "quads": 1})
+    assert s2.professionals == 2
+    assert s2.volunteers == 1
+    assert s2.quads == 1
+    assert s2.total_rescuers == 4
 
-        loaded = load_benchmark_from_json(json_path)
-        assert len(loaded) == 20
-
-        for orig, reloaded in zip(incidents, loaded):
-            assert orig.incident_id == reloaded.incident_id
-            assert orig.target_node == reloaded.target_node
-            assert orig.priority == reloaded.priority
-            assert orig.created_at == reloaded.created_at
-            assert orig.rescue_duration == reloaded.rescue_duration
+    # 3. Z obiektu
+    s3 = BaseStaffing.from_any(s2)
+    assert s3 is s2
 
 
 def test_run_simulation_evaluation_metrics():
@@ -103,10 +103,11 @@ def test_run_simulation_evaluation_metrics():
     """
     incidents = BenchmarkDataset.generate(num_incidents=5, seed=7, peak_mean=10.0, off_peak_mean=15.0)
 
+    # Elastyczna obsada: na Turbaczu 2 zawodowców, na Starych Wierchach 1 ochotnik, w Kowańcu 1 quad
     allocation = {
-        "Schronisko_Turbacz": 2,
-        "Stare_Wierchy": 1,
-        "Kowaniec_NowyTarg": 1
+        "Schronisko_Turbacz": BaseStaffing(professionals=2),
+        "Stare_Wierchy": BaseStaffing(volunteers=1),
+        "Kowaniec_NowyTarg": BaseStaffing(quads=1)
     }
 
     results = run_simulation_evaluation(allocation=allocation, benchmark_incidents=incidents)
@@ -125,6 +126,26 @@ def test_run_simulation_evaluation_metrics():
     assert "mean_response_time_min" in summary
 
 
+def test_flexible_base_staffing_with_quads_and_volunteers():
+    """
+    Weryfikacja pełnej elastyczności:
+    testujemy umieszczenie quada na Turbaczu (szczyt) i miksu ochotników na Knurowskiej.
+    """
+    incidents = BenchmarkDataset.generate(num_incidents=6, seed=88, peak_mean=10.0)
+
+    # Zaawansowana konfiguracja: quad na Turbaczu!
+    flexible_alloc = {
+        "Schronisko_Turbacz": BaseStaffing(professionals=1, quads=1),
+        "Przelecz_Knurowska": BaseStaffing(volunteers=2)
+    }
+
+    results = run_simulation_evaluation(allocation=flexible_alloc, benchmark_incidents=incidents)
+
+    assert results.total_incidents == 6
+    assert results.resolved_count >= 1
+    assert results.mean_response_time > 0.0
+
+
 def test_allocation_comparison_sensitivity():
     """
     Weryfikacja wrażliwości silnika:
@@ -133,9 +154,11 @@ def test_allocation_comparison_sensitivity():
     """
     incidents = BenchmarkDataset.generate(num_incidents=6, seed=123, peak_mean=12.0)
 
+    # Konfiguracja Dobra: ratownicy na szczycie w Stacji Centralnej (Turbacz)
     good_alloc = {"Schronisko_Turbacz": 3}
     res_good = run_simulation_evaluation(allocation=good_alloc, benchmark_incidents=incidents)
 
+    # Konfiguracja Gorsza: brak ratowników na szczycie, tylko 1 ratownik w Kowańcu
     poor_alloc = {"Kowaniec_NowyTarg": 1}
     res_poor = run_simulation_evaluation(allocation=poor_alloc, benchmark_incidents=incidents)
 

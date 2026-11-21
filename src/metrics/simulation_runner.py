@@ -3,7 +3,7 @@ Silnik symulacji i generator benchmarku do ewaluacji optymalizacyjnej (GOPR DES)
 
 Moduł odpowiada za:
 1. Obiektową reprezentację zbioru benchmarkowego wypadków (BenchmarkDataset).
-2. Zapis i odczyt zbioru benchmarkowego z formatu JSON z metadanymi.
+2. Elastyczną konfigurację obsady personalno-sprzętowej baz GOPR (BaseStaffing: zawodowi, ochotnicy, quady).
 3. Uruchamianie symulacji w SimPy dla zadanej konfiguracji obsady baz (allocation).
 4. Agregację metryk czasowych (średni czas dotarcia, 95-percentyl Triage, funkcja kosztu J dla optymalizatora).
 """
@@ -19,8 +19,49 @@ from src.core.incident import Incident, Priority
 from src.core.rescuer import Rescuer
 from src.core.dispatcher import Dispatcher
 from src.core.stochastic_generator import StochasticIncidentGenerator
+from src.routing.routing_interface import AbstractRoutingService
 from src.routing.gorce_trails_network import GorceTrailRoutingService, GORCE_TRAIL_NODES
 from src.routing.weather_conditions import WeatherConditions
+
+
+# ==============================================================================
+# ELASTYCZNA OBSADA BAZY GOPR (BASE STAFFING)
+# ==============================================================================
+
+@dataclass
+class BaseStaffing:
+    """
+    Obsada personalno-sprzętowa pojedynczej stacji / punktu ratunkowego GOPR.
+    Pozwala optymalizatorowi precyzyjnie przydzielać różne zasoby do dowolnej bazy.
+    """
+    professionals: int = 0      # Ratownicy zawodowi (start natychmiast, tempo standardowe)
+    volunteers: int = 0         # Ochotnicy (czas mobilizacji 5 min z domu/bazy)
+    quads: int = 0              # Pojazdy zmotoryzowane (skuter śnieżny / quad, wysoka prędkość)
+
+    @property
+    def total_rescuers(self) -> int:
+        """Łączna liczba ratowników/pojazdów w tej bazie."""
+        return self.professionals + self.volunteers + self.quads
+
+    @classmethod
+    def from_any(cls, value: Union["BaseStaffing", int, Dict[str, int]]) -> "BaseStaffing":
+        """
+        Uniwersalny konwerter:
+        - Obiekt BaseStaffing -> zwraca bez zmian,
+        - Int (np. 2) -> traktowany jako 2 zawodowców,
+        - Słownik (np. {"professionals": 2, "quads": 1}) -> tworzy obiekt BaseStaffing.
+        """
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, int):
+            return cls(professionals=value)
+        if isinstance(value, dict):
+            return cls(
+                professionals=value.get("professionals", 0),
+                volunteers=value.get("volunteers", 0),
+                quads=value.get("quads", 0)
+            )
+        raise TypeError(f"Nieobsługiwany typ konfiguracji bazy: {type(value)}")
 
 
 # ==============================================================================
@@ -186,7 +227,7 @@ class BenchmarkDataset:
 @dataclass
 class SimulationResults:
     """Zagregowane wyniki z przebiegu symulacji dla danej dyslokacji ratowników."""
-    allocation: Dict[str, int]
+    allocation: Dict[str, Any]
     total_incidents: int
     resolved_count: int
     unresolved_count: int
@@ -211,8 +252,19 @@ class SimulationResults:
 
     def summary_dict(self) -> Dict[str, Any]:
         """Zwraca czytelny słownik ze statystykami."""
+        alloc_summary = {}
+        for base, val in self.allocation.items():
+            if isinstance(val, BaseStaffing):
+                alloc_summary[base] = {
+                    "professionals": val.professionals,
+                    "volunteers": val.volunteers,
+                    "quads": val.quads
+                }
+            else:
+                alloc_summary[base] = val
+
         return {
-            "allocation": self.allocation,
+            "allocation": alloc_summary,
             "total_incidents": self.total_incidents,
             "resolved_count": self.resolved_count,
             "unresolved_count": self.unresolved_count,
@@ -229,24 +281,25 @@ class SimulationResults:
 # ==============================================================================
 
 def run_simulation_evaluation(
-    allocation: Dict[str, int],
+    allocation: Dict[str, Union[BaseStaffing, int, Dict[str, int]]],
     benchmark_incidents: Union[BenchmarkDataset, List[Incident]],
     weather: Optional[WeatherConditions] = None,
+    routing_service: Optional[AbstractRoutingService] = None,
     quad_speed_factor: float = 2.6,
     standard_speed_factor: float = 1.15
 ) -> SimulationResults:
     """
     Uruchamia pełną symulację DES dla zadanej dyslokacji ratowników i zbioru wypadków.
     
-    :param allocation: Słownik bazy -> liczba ratowników, np. {"Schronisko_Turbacz": 2, "Kowaniec_NowyTarg": 1}
+    :param allocation: Słownik bazy -> BaseStaffing lub int/dict (zawodowi, ochotnicy, quady).
     :param benchmark_incidents: Obiekt BenchmarkDataset lub lista obiektów Incident.
     :param weather: Warunki atmosferyczne (śnieg, wiatr, widoczność).
+    :param routing_service: Opcjonalny własny serwis trasowania (domyślnie: GorceTrailRoutingService).
     :return: Obiekt SimulationResults z czasem reakcji i wskaźnikiem dopasowania J.
     """
     # 1. Klonowanie zdarzeń (nie modyfikujemy oryginalnego zbioru benchmarkowego)
     if isinstance(benchmark_incidents, BenchmarkDataset):
-        cloned_dataset = benchmark_incidents.clone()
-        incidents = cloned_dataset.incidents
+        incidents = benchmark_incidents.clone().incidents
     else:
         incidents = [
             Incident(
@@ -264,40 +317,63 @@ def run_simulation_evaluation(
 
     # 2. Tworzenie środowiska SimPy i serwisu trasowania
     env = simpy.Environment()
-    weather_cond = weather or WeatherConditions(snow_cm=5.0, wind_kmh=20.0)
-    routing = GorceTrailRoutingService(default_weather=weather_cond)
+    if routing_service is not None:
+        routing = routing_service
+    else:
+        weather_cond = weather or WeatherConditions(snow_cm=5.0, wind_kmh=20.0)
+        routing = GorceTrailRoutingService(default_weather=weather_cond)
 
-    # 3. Tworzenie ratowników zgodnie z wektorem decyzyjnym (allocation)
+    # 3. Elastyczne powoływanie ratowników zgodnie ze specyfikacją BaseStaffing
     rescuers: List[Rescuer] = []
-    rescuer_idx = 1
+    rescuer_counter = 1
 
-    for base_node, count in allocation.items():
-        if base_node not in GORCE_TRAIL_NODES:
+    normalized_allocation: Dict[str, BaseStaffing] = {}
+
+    for base_node, spec_raw in allocation.items():
+        if base_node not in GORCE_TRAIL_NODES and (hasattr(routing, "graph") and base_node not in routing.graph):
             continue
-        for i in range(count):
-            is_volunteer = (base_node == "Stare_Wierchy")
-            
-            # W dolnej bazie Kowaniec pierwszy ratownik dysponuje quadem / skuterem śnieżnym
-            if base_node == "Kowaniec_NowyTarg" and i == 0:
-                speed = quad_speed_factor
-                agent_id = f"GOPR_Quad_{rescuer_idx}"
-            elif is_volunteer:
-                speed = 1.05
-                agent_id = f"GOPR_Ochotnik_{rescuer_idx}"
-            else:
-                speed = standard_speed_factor
-                agent_id = f"GOPR_Zawodowy_{rescuer_idx}"
 
+        staffing = BaseStaffing.from_any(spec_raw)
+        normalized_allocation[base_node] = staffing
+
+        # A. Ratownicy zawodowi (start natychmiast, tempo standardowe)
+        for _ in range(staffing.professionals):
             r = Rescuer(
                 env=env,
-                agent_id=agent_id,
+                agent_id=f"GOPR_Zawodowy_{base_node[:6]}_{rescuer_counter}",
                 base_node=base_node,
                 routing_service=routing,
-                speed_factor=speed,
-                is_volunteer=is_volunteer
+                speed_factor=standard_speed_factor,
+                is_volunteer=False
             )
             rescuers.append(r)
-            rescuer_idx += 1
+            rescuer_counter += 1
+
+        # B. Ochotnicy (czas mobilizacji 5 min z domu/bazy)
+        for _ in range(staffing.volunteers):
+            r = Rescuer(
+                env=env,
+                agent_id=f"GOPR_Ochotnik_{base_node[:6]}_{rescuer_counter}",
+                base_node=base_node,
+                routing_service=routing,
+                speed_factor=1.05,
+                is_volunteer=True
+            )
+            rescuers.append(r)
+            rescuer_counter += 1
+
+        # C. Quady / skutery śnieżne (wysoka prędkość, brak opóźnienia)
+        for _ in range(staffing.quads):
+            r = Rescuer(
+                env=env,
+                agent_id=f"GOPR_Quad_{base_node[:6]}_{rescuer_counter}",
+                base_node=base_node,
+                routing_service=routing,
+                speed_factor=quad_speed_factor,
+                is_volunteer=False
+            )
+            rescuers.append(r)
+            rescuer_counter += 1
 
     dispatcher = Dispatcher(env=env, rescuers=rescuers, routing_service=routing)
 
@@ -333,7 +409,7 @@ def run_simulation_evaluation(
     p95_crit = float(np.percentile(critical_times, 95)) if critical_times else mean_resp
 
     return SimulationResults(
-        allocation=allocation,
+        allocation=normalized_allocation,
         total_incidents=len(incidents),
         resolved_count=resolved_count,
         unresolved_count=unresolved_count,
@@ -344,26 +420,3 @@ def run_simulation_evaluation(
         p95_response_time=round(p95_resp, 2),
         p95_critical_response_time=round(p95_crit, 2)
     )
-
-
-# ==============================================================================
-# ALIASY FUNKCYJNE (KOMPATYBILNOŚĆ WSTECZNA)
-# ==============================================================================
-
-def generate_benchmark_dataset(num_incidents: int = 100, seed: int = 42, **kwargs) -> BenchmarkDataset:
-    """Alias funkcyjny delegujący do BenchmarkDataset.generate()."""
-    return BenchmarkDataset.generate(num_incidents=num_incidents, seed=seed, **kwargs)
-
-
-def save_benchmark_to_json(dataset_or_incidents: Union[BenchmarkDataset, List[Incident]], filepath: Union[str, Path]) -> None:
-    """Alias funkcyjny zapisujący zbiór lub listę do JSON."""
-    if isinstance(dataset_or_incidents, BenchmarkDataset):
-        dataset_or_incidents.save_to_json(filepath)
-    else:
-        dataset = BenchmarkDataset(incidents=dataset_or_incidents)
-        dataset.save_to_json(filepath)
-
-
-def load_benchmark_from_json(filepath: Union[str, Path]) -> BenchmarkDataset:
-    """Alias funkcyjny wczytujący BenchmarkDataset z JSON."""
-    return BenchmarkDataset.load_from_json(filepath)
