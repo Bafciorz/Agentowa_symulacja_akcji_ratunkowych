@@ -9,18 +9,18 @@
 **Plik testowy:** `tests/test_stochastic_generator.py`
 
 ### Co masz konkretnie zrobić w ciągu najbliższych 2 tygodni:
-- [ ] **Krok 1: Generator napływu wezwań (Proces Poissona)**  
+- [x] **Krok 1: Generator napływu wezwań (Proces Poissona)**  
   Napisz funkcję `get_next_incident_delay(sim_time_minutes: float) -> float`.  
   Czasy między kolejnymi zgłoszeniami mają być losowane z rozkładu wykładniczego (`np.random.exponential`). W godzinach szczytu turystycznego (10:00–16:00) wezwania pojawiają się średnio co 60 minut, a poza szczytem rzadziej (np. średnio co 240 minut).
-- [ ] **Krok 2: Mieszany strumień urazów (kontuzje + zaginięcia)**  
+- [x] **Krok 2: Mieszany strumień urazów (kontuzje + zaginięcia)**  
   Stwórz funkcję losującą kategorię wezwania według realistycznych wag GOPR:
   * **40% Drobne kontuzje (`LOW`):** skręcenia kostki, stłuczenia, odwodnienie $\to$ 1 ratownik pieszy, czas opatrywania losowany z rozkładu trójkątnego: `triangular(10, 15, 25)` minut.
   * **30% Poważne urazy (`HIGH`):** złamania nóg, urazy kręgosłupa $\to$ wymóg **2 ratowników i noszy alpejskich**, czas akcji na miejscu: `triangular(20, 30, 45)` minut.
   * **10% Stany krytyczne (`CRITICAL`):** nagłe zatrzymanie krążenia (NZK), głęboka hipotermia $\to$ natychmiastowe wysłanie defibrylatora AED, czas reanimacji: `triangular(25, 40, 60)` minut.
   * **20% Zaginięcia w terenie (`SEARCH`):** zgłoszenie zaginięcia turysty $\to$ przejście do procedury poszukiwawczej.
-- [ ] **Krok 3: Ważone losowanie lokalizacji wypadku na grafie**  
+- [x] **Krok 3: Ważone losowanie lokalizacji wypadku na grafie**  
   Napisz funkcję wybierającą węzeł wypadku z grafu `GORCE_TRAIL_NODES`. Węzły o dużym natężeniu ruchu (Schronisko Turbacz, Hala Długa, Kiczora) powinny mieć większą wagę losowania niż odległe doliny.
-- [ ] **Krok 4: Testy jednostkowe**  
+- [x] **Krok 4: Testy jednostkowe**  
   Stwórz test w `tests/test_stochastic_generator.py`, sprawdzający czy generator generuje poprawne obiekty `Incident` z prawidłowymi atrybutami i bez błędów.
 
 ---

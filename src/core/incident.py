@@ -21,6 +21,8 @@ class Incident:
     created_at: float = 0.0# moment zglsozenia (czas SimPy)
     is_resolved: bool = False
     assigned_rescuers: List[str] = field(default_factory = list)
+    incident_type: str = "TRAUMA"
+    description: str = ""
 
     arrival_events: List[simpy.Event] = field(default_factory=list)
     _rescuer_arrival_map: Dict[str, simpy.Event] = field(default_factory=dict)
