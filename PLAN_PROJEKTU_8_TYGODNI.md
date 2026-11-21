@@ -42,6 +42,7 @@ Całość prac zaplanowano w 4 dwutygodniowych sprintach. Zasadniczy kod i badan
 * **Tydzień 1:**
   * Utworzenie modułu `stochastic_generator.py` (proces Poissona dla napływu wezwań, wagi ryzyka na węzłach grafu Gorców).
   * Stworzenie klasy `LostPerson` (model ruchu zaginionego w terenie: schodzenie w dół dolin, błądzenie po grani, bezruch).
+  * Przeniesienie obliczania odległości 2D/3D, deniwelacji i czasów bazowych bezpośrednio na krawędzie grafu (`G[u][v]`) wraz z flagą przejezdności dla quada.
   * Zdefiniowanie wektora zmiennych decyzyjnych dla optymalizacji (rozmieszczenie ratowników, ochotników i sprzętu w bazach).
 * **Tydzień 2:**
   * Dobór rozkładów prawdopodobieństwa dla czasów zaopatrywania urazów (rozkłady trójkątne / log-normalne w zależności od priorytetu Triage).
@@ -113,13 +114,14 @@ Całość prac zaplanowano w 4 dwutygodniowych sprintach. Zasadniczy kod i badan
   * Integracja misji `SEARCH` w `src/core/dispatcher.py`
 * **Definicja ukończenia (DoD):** Zaginiony przemieszcza się po zboczach Gorców wg heurystyk Koestera, dyspozytor wyznacza sektory poszukiwań, a ratownicy przeszukują teren ze zliczaniem prawdopodobieństwa odnalezienia (POD).
 
-### 3. Tomasz Chmielowski – Optymalizacja Symulacyjna i Dashboard
-* **Obszar odpowiedzialności:** Algorytm optymalizujący dyslokację baz GOPR, aplikacja prezentacyjna Streamlit oraz wykresy porównawcze.
+### 3. Tomasz Chmielowski – Optymalizacja Symulacyjna, Architektura Krawędzi Grafu i Dashboard
+* **Obszar odpowiedzialności:** Przeniesienie obliczeń odległości i czasów bezpośrednio na krawędzie grafu (prekalkulacja wag dla szybkiego routingu), algorytm optymalizujący dyslokację baz GOPR, aplikacja prezentacyjna Streamlit oraz wykresy porównawcze.
 * **Główne pliki:**
+  * `src/routing/gorce_trails_network.py` (atrybuty krawędzi: odległości 2D/3D, czasy bazowe, flaga `vehicle_accessible`)
   * `src/optimization/base_optimizer.py`
   * `app/streamlit_app.py`
   * `experiments/visualize_results.py`
-* **Definicja ukończenia (DoD):** Algorytm optymalizacyjny potrafi znaleźć konfigurację baz skracającą średni czas dotarcia, a aplikacja Streamlit pozwala uruchomić demonstrację na żywo jednym kliknięciem.
+* **Definicja ukończenia (DoD):** Krawędzie grafu posiadają wprost przypisane odległości i czasy, algorytm optymalizacyjny potrafi znaleźć konfigurację baz skracającą średni czas dotarcia, a aplikacja Streamlit pozwala uruchomić demonstrację na żywo jednym kliknięciem.
 
 ---
 

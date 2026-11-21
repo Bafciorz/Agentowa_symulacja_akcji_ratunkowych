@@ -48,12 +48,21 @@
 ---
 
 ## 3. ZADANIA DLA TOMASZA CHMIELOWSKIEGO
-**Rola:** Simulation-Optimization (Ramy Optymalizacji Dyslokacji Baz)  
-**Docelowy plik:** `src/optimization/base_optimizer.py`  
-**Plik testowy:** `tests/test_optimizer.py`
+**Rola:** Optymalizacja Symulacyjna i Architektura Grafu (Przeniesienie Obliczeń na Krawędzie)  
+**Docelowe pliki:** `src/routing/gorce_trails_network.py` (lub krawędzie grafu), `src/optimization/base_optimizer.py`  
+**Plik testowy:** `tests/test_optimizer.py`, `tests/test_gorce_trails.py`
 
 ### Co masz konkretnie zrobić w ciągu najbliższych 2 tygodni:
-- [ ] **Krok 1: Sformułowanie przestrzeni decyzyjnej**  
+- [ ] **Krok 1: Przeniesienie obliczania odległości i czasów na krawędzie grafu (Edge-Level Precalculation)**  
+  Przenieś logikę wyliczania geometrii i czasów bezpośrednio do atrybutów krawędzi grafu (`G[u][v]` w `gorce_trails_network.py`):
+  * Każda krawędź grafu powinna mieć statycznie wyliczone i zapisane w słowniku:
+    * `distance_2d` [m] (odległość w rzucie poziomym),
+    * `elevation_change` [m] (różnica wysokości $\Delta z$),
+    * `distance_3d` [m] (rzeczywista długość trójwymiarowa $\sqrt{d_{2d}^2 + \Delta z^2}$),
+    * `base_travel_time_min` (bazowy czas przejścia wyliczony ze wzoru Campbella-Sullivana/Lorentza),
+    * `vehicle_accessible: bool` (flaga przejezdności dla quada/skutera – `True` dla dróg i szlaków, `False` dla trudnych wiatrołomów).
+  * **Dlaczego to kluczowe:** Dzięki temu trasowanie Dijkstry i algorytm optymalizacyjny nie muszą przeliczać trygonometrii w locie przy każdym kroku agenta — odczyt z krawędzi grafu jest natychmiastowy (skraca czas masowych symulacji z sekund do milisekund).
+- [ ] **Krok 2: Sformułowanie przestrzeni decyzyjnej optymalizatora**  
   Zdefiniuj wektor zmiennych decyzyjnych reprezentujący obsadę baz GOPR w Gorcach:
   * Dostępne punkty bazowe:
     1. `Schronisko_Turbacz` (Stacja Główna),
@@ -61,14 +70,14 @@
     3. `Kowaniec_NowyTarg` (Baza Dolna / Quady),
     4. `Przelecz_Knurowska` (Punkt Wschodni).
   * Zmienne decyzyjne: ile ratowników zawodowych, ilu ochotników i jaki sprzęt (quad/nosze) przydzielić do każdej z tych 4 baz przy stałym łącznym limicie (np. max 6 zawodowych, 8 ochotników, 2 quady).
-- [ ] **Krok 2: Definicja funkcji celu (Fitness Function)**  
+- [ ] **Krok 3: Definicja funkcji celu (Fitness Function)**  
   Napisz funkcję kosztu, która będzie minimalizowana:
   $$J = \overline{T}_{\text{response}} + w_1 \cdot P_{95}(\text{Triage}) + w_2 \cdot \text{Kary\_za\_przekroczenie\_budzetu}$$
   gdzie celem jest zminimalizowanie średniego czasu dotarcia do wypadków oraz 95-percentyla czasu dla wezwań krytycznych.
-- [ ] **Krok 3: Szkielet algorytmu optymalizacyjnego**  
+- [ ] **Krok 4: Szkielet algorytmu optymalizacyjnego**  
   Napisz wstępny algorytm (np. prosty algorytm genetyczny lub przeszukiwanie losowe / symulowane wyżarzanie), który generuje próbne konfiguracje obsady baz i ocenia je za pomocą funkcji testowej.
-- [ ] **Krok 4: Testy jednostkowe**  
-  Stwórz test w `tests/test_optimizer.py` sprawdzający, czy algorytm potrafi wygenerować poprawną konfigurację baz mieszczącą się w nałożonych limitach zasobów.
+- [ ] **Krok 5: Testy jednostkowe**  
+  Stwórz testy weryfikujące poprawność atrybutów na krawędziach grafu oraz ograniczeń zasobowych w optymalizatorze.
 
 ---
 
