@@ -23,6 +23,10 @@ import simpy
 from src.core.dispatcher import Dispatcher
 from src.core.incident import Incident, Priority
 from src.core.rescuer import Rescuer
+from src.core.stochastic_generator import (
+    StochasticIncidentGenerator,
+    stochastic_incident_stream
+)
 from src.routing import (
     GorceTrailRoutingService,
     WeatherConditions,
@@ -93,96 +97,70 @@ def main():
 
     incidents = []
 
-    # 5. Dynamiczny scenariusz dyżuru górskiego w Gorcach
-    def gorce_duty_scenario():
-        print(f"\n[{env.now:.1f} min] >>> ROZPOCZĘCIE DYŻURU OPERACYJNEGO W GORCACH <<<\n")
+    # 5. Stochastyczny generator napływu wezwań (Proces Poissona + Wagi Węzłów + Triage)
+    # Start o 10:00 (szczyt turystyczny), średni czas między zgłoszeniami: 40 min na potrzeby demonstracji
+    generator = StochasticIncidentGenerator(
+        seed=42,
+        start_hour=10.0,
+        peak_mean=40.0,
+        off_peak_mean=120.0
+    )
 
-        # ZDARZENIE 1 (t=0.0): Złamanie ręki na szlaku czerwonym (Polana Gabrowska)
-        # 1 ratownik, priorytet LOW
-        inc1 = Incident(
-            incident_id="W01_Zlamanie_Gabrowska",
-            target_node="Polana_Gabrowska",
-            priority=Priority.LOW,
-            required_rescuers=1,
-            rescue_duration=15.0,
-            created_at=env.now
+    print(f"\n[{env.now:.1f} min] >>> ROZPOCZĘCIE DYŻURU OPERACYJNEGO GOPR W GORCACH (STOCHASTIC DES) <<<")
+    print(f"[*] Generator wezwań: Niejednorodny proces Poissona (NHPP), seed=42")
+    print(f"[*] Dyspozytor Triage: Aktywny (wywłaszczanie CRITICAL, koordynacja noszy AllOf)\n")
+
+    # Uruchomienie dynamicznego strumienia zdarzeń
+    env.process(
+        stochastic_incident_stream(
+            env=env,
+            dispatcher=dispatcher,
+            generator=generator,
+            run_until=240.0,
+            collected_incidents=incidents
         )
-        incidents.append(inc1)
-        dispatcher.handle_incident(inc1)
+    )
 
-        # ZDARZENIE 2 (t=6.0): Wypadek zespołowy na Kiczorze (upadek ze skały)
-        # Wymagane nosze alpejskie i 2 ratowników! Priorytet HIGH
-        yield env.timeout(6.0)
-        print(f"\n[{env.now:.1f} min] >>> ALARM: CIĘŻKI WYPADEK NA KICZORZE (WYMAGANE NOSZE ALPEJSKIE) <<<")
-        inc2 = Incident(
-            incident_id="W02_Nosze_Kiczora",
-            target_node="Kiczora",
-            priority=Priority.HIGH,
-            required_rescuers=2,
-            rescue_duration=20.0,
-            created_at=env.now
-        )
-        incidents.append(inc2)
-        dispatcher.handle_incident(inc2)
-
-        # ZDARZENIE 3 (t=12.0): Zdarzenie krytyczne - Nagłe Zatrzymanie Krążenia (NZK) na Hali Długiej!
-        # Priorytet CRITICAL -> Dyspozytor musi podjąć decyzję o procedurze TRIAGE (wywłaszczeniu)
-        yield env.timeout(6.0)
-        print(f"\n[{env.now:.1f} min] >>> ALARM KRYTYCZNY: ZATRZYMANIE KRĄŻENIA (NZK / AED) - PROCEDURA TRIAGE! <<<")
-        inc_crit = Incident(
-            incident_id="W03_NZK_Hala_Dluga",
-            target_node="Hala_Dluga",
-            priority=Priority.CRITICAL,
-            required_rescuers=1,
-            rescue_duration=20.0,
-            created_at=env.now
-        )
-        incidents.append(inc_crit)
-        dispatcher.handle_incident(inc_crit)
-
-        # ZDARZENIE 4 (t=18.0): Turysta zgubił się w wiatrołomach w Dolinie Kamienicy poza szlakiem
-        # Trudny teren pozaszlakowy (wiatrołomy, zwalone pnie świerkowe)
-        yield env.timeout(6.0)
-        print(f"\n[{env.now:.1f} min] >>> ZGŁOSZENIE: POSZUKIWANIE POZA SZLAKIEM (WIATROŁOMY KAMIENICY) <<<")
-        inc4 = Incident(
-            incident_id="W04_Zaginiecie_Wiatrolomy",
-            target_node="Dolina_Kamienicy_Wiatrolomy",
-            priority=Priority.MEDIUM,
-            required_rescuers=1,
-            rescue_duration=25.0,
-            created_at=env.now
-        )
-        incidents.append(inc4)
-        dispatcher.handle_incident(inc4)
-
-    env.process(gorce_duty_scenario())
-
-    # 6. Uruchomienie zegara symulacji na 180 minut (3-godzinny dyżur)
-    env.run(until=180.0)
+    # 6. Uruchomienie zegara symulacji na 300 minut (5 godzin dyżuru z buforem powrotu)
+    env.run(until=300.0)
 
     # 7. Raport końcowy z przebiegu dyżuru
     print("\n" + "=" * 85)
     print("                     PODSUMOWANIE DYŻURU GOPR GORCE")
     print("=" * 85)
     print(f"Łączny czas trwania dyżuru: {env.now:.1f} minut")
+    print(f"Liczba zarejestrowanych zgłoszeń: {len(incidents)}")
     print(f"Liczba zgłoszeń w kolejce oczekujących dyspozytora: {len(dispatcher.pending_incidents)}")
 
-    print("\nStatus poszkodowanych na szlakach:")
+    resolved_incidents = [inc for inc in incidents if inc.is_resolved]
+    response_times = [inc.response_time for inc in incidents if inc.response_time is not None]
+
+    print(f"Skuteczność pomocy: {len(resolved_incidents)}/{len(incidents)} wypadków w pełni zaopatrzonych")
+    if response_times:
+        import numpy as np
+        mean_t = np.mean(response_times)
+        p95_t = np.percentile(response_times, 95)
+        print(f"Średni czas dotarcia do poszkodowanego (Mean Response Time): {mean_t:.1f} min")
+        print(f"95-percentyl czasu dotarcia (P95 Response Time): {p95_t:.1f} min")
+
+    print("\nRejestr zdarzeń ratunkowych na szlakach Gorców:")
     for inc in incidents:
         loc_name = GORCE_TRAIL_NODES.get(inc.target_node, {}).get("name", inc.target_node)
+        resp_str = f"{inc.response_time:.1f} min" if inc.response_time is not None else "W drodze / Kolejka"
         if inc.is_resolved:
-            status = "ROZWIĄZANY (Udzielono pomocy medycznej)"
+            status = f"[ROZWIĄZANY] (Czas dotarcia: {resp_str})"
         elif any(r.state.name == "ON_SCENE" and r.current_incident == inc for r in dispatcher.rescuers):
             assigned = [r.agent_id for r in dispatcher.rescuers if r.current_incident == inc]
-            status = f"W TRAKCIE AKCJI NA MIEJSCU (Ratownicy: {', '.join(assigned)})"
+            status = f"[W TRAKCIE AKCJI] (Ratownicy: {', '.join(assigned)}, dotarcie: {resp_str})"
         elif len(inc.assigned_rescuers) >= inc.required_rescuers:
-            status = f"W TRAKCIE DOJAZDU (Ratownicy w drodze: {', '.join(inc.assigned_rescuers)})"
+            status = f"[W TRAKCIE DOJAZDU] (Ratownicy w drodze: {', '.join(inc.assigned_rescuers)})"
         elif len(inc.assigned_rescuers) > 0:
-            status = f"CZĘŚCIOWO OBSADZONY (W drodze: {', '.join(inc.assigned_rescuers)}, czeka na wsparcie)"
+            status = f"[CZĘŚCIOWO OBSADZONY] (W drodze: {', '.join(inc.assigned_rescuers)}, czeka na wsparcie)"
         else:
-            status = "OCZEKUJE W KOLEJCE DYSPOZYTORA"
+            status = "[OCZEKUJE W KOLEJCE]"
 
-        print(f" - [{inc.priority.name:8s}] {inc.incident_id:26s} | Miejsce: {loc_name:30s} -> {status}")
+        print(f" - [{inc.priority.name:8s}] {inc.incident_id:28s} | {loc_name:30s} -> {status}")
+        print(f"   Opis: {inc.description} (Wymaganych: {inc.required_rescuers}, Czas akcji: {inc.rescue_duration} min)")
 
     print("\nKońcowy stan ratowników:")
     for r in dispatcher.rescuers:

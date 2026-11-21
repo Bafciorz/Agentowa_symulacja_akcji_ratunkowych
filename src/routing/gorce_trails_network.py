@@ -441,7 +441,7 @@ class GorceTrailRoutingService(AbstractRoutingService):
     <div id="map"></div>
     <div class="hud-panel">
         <div class="hud-title">
-            <span>🏔️ GOPR GORCE - DYŻUR OPERACYJNY</span>
+            <span>GOPR GORCE - DYŻUR OPERACYJNY</span>
         </div>
         <div class="hud-sub">Symulacja Agentowa DES (SimPy) + Fizyka Terenu (Campbell & Sullivan)</div>
         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0;">
@@ -480,7 +480,7 @@ class GorceTrailRoutingService(AbstractRoutingService):
                 opacity: 0.85
             }}).addTo(map);
 
-            poly.bindPopup(`<b>${{e.trail_name}}</b><br>Dystans 3D: ${{e.dist_m}} m<br>${{e.on_path ? 'Szlak znakowany' : '⚠️ Trudny teren pozaszlakowy'}}`);
+            poly.bindPopup(`<b>${{e.trail_name}}</b><br>Dystans 3D: ${{e.dist_m}} m<br>${{e.on_path ? 'Szlak znakowany' : '[UWAGA] Trudny teren pozaszlakowy'}}`);
         }});
 
         // Rysowanie węzłów
@@ -514,7 +514,7 @@ class GorceTrailRoutingService(AbstractRoutingService):
                 fillOpacity: 0.9
             }}).addTo(map);
 
-            const statusTxt = inc.is_resolved ? '✅ ROZWIĄZANY' : '⏳ W TRAKCIE / KOLEJKA';
+            const statusTxt = inc.is_resolved ? '[ROZWIĄZANY]' : '[W TRAKCIE / KOLEJKA]';
             incMarker.bindPopup(`
                 <div style="font-family: sans-serif;">
                     <b style="color: ${{pColor}};">[${{inc.priority}}] ${{inc.id}}</b><br>
