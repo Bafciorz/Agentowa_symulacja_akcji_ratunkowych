@@ -1,6 +1,7 @@
 import json
 import tempfile
 from pathlib import Path
+from typing import Optional, Union, Dict
 import numpy as np
 import simpy
 import pytest
@@ -10,8 +11,18 @@ from src.core.dispatcher import Dispatcher
 from src.core.rescuer import Rescuer, RescuerState
 from src.routing.mock_routing import MockRoutingService
 from src.routing.gorce_trails_network import GORCE_TRAIL_NODES
+from src.core.stochastic_interface import (
+    IncidentTypeSpec,
+    AbstractArrivalProcess,
+    AbstractIncidentTypeSampler,
+    AbstractSpatialSampler
+)
 from src.core.stochastic_generator import (
     GOPRHistoricalRiskModel,
+    PoissonArrivalProcess,
+    ConstantArrivalProcess,
+    GOPRTriageSampler,
+    NodeNetworkSpatialSampler,
     get_next_incident_delay,
     sample_incident_category,
     sample_incident_location,
@@ -37,7 +48,6 @@ def test_poisson_arrival_delays_peak_vs_off_peak():
         for _ in range(sample_size)
     ]
     peak_mean = np.mean(peak_delays)
-    # Przy n=8000 średnia powinna być bardzo blisko 60 min (tolerancja ±3 min)
     assert 57.0 < peak_mean < 63.0
 
     # 2. Test poza szczytem (godzina 20:00 -> sim_time = 720 min)
@@ -46,7 +56,6 @@ def test_poisson_arrival_delays_peak_vs_off_peak():
         for _ in range(sample_size)
     ]
     off_peak_mean = np.mean(off_peak_delays)
-    # Przy n=8000 średnia powinna być blisko 240 min (tolerancja ±12 min)
     assert 228.0 < off_peak_mean < 252.0
 
 
@@ -69,7 +78,6 @@ def test_incident_category_proportions_and_triangular_bounds():
         required = info["required_rescuers"]
         counts[code] += 1
 
-        # Sprawdzenie granic rozkładów trójkątnych
         if code == "LOW":
             assert 10.0 <= duration <= 25.0
             assert required == 1
@@ -87,7 +95,6 @@ def test_incident_category_proportions_and_triangular_bounds():
             assert required == 1
             assert info["priority"] == Priority.MEDIUM
 
-    # Sprawdzenie proporcji statystycznych (z tolerancją ±2.5%)
     assert 0.375 < (counts["LOW"] / sample_size) < 0.425
     assert 0.275 < (counts["HIGH"] / sample_size) < 0.325
     assert 0.080 < (counts["CRITICAL"] / sample_size) < 0.120
@@ -106,7 +113,7 @@ def test_location_sampling_and_gopr_empirical_loading():
     node = sample_incident_location(incident_type="TRAUMA", rng=rng)
     assert node in GORCE_TRAIL_NODES
 
-    # 2. Model ze sztucznymi danymi GOPR: 90% Turbacz, 10% Kiczora
+    # 2. Model ze zliczeniami GOPR: 90% Turbacz, 10% Kiczora
     custom_counts = {
         "Schronisko_Turbacz": 90,
         "Kiczora": 10,
@@ -119,7 +126,6 @@ def test_location_sampling_and_gopr_empirical_loading():
     assert pytest.approx(probs["Kiczora"], 0.001) == 0.10
     assert probs.get("Hala_Dluga", 0.0) == 0.0
 
-    # Losowanie z tego modelu
     draws = [sample_incident_location(risk_model=model, rng=rng) for _ in range(2000)]
     turbacz_ratio = draws.count("Schronisko_Turbacz") / len(draws)
     assert 0.87 < turbacz_ratio < 0.93
@@ -162,12 +168,10 @@ def test_simpy_integration_stochastic_stream():
     env = simpy.Environment()
     routing = MockRoutingService(default_edge_time=5.0)
 
-    # 2 ratowników
     r1 = Rescuer(env, "GOPR_1", base_node=0, routing_service=routing)
     r2 = Rescuer(env, "GOPR_2", base_node=0, routing_service=routing)
     dispatcher = Dispatcher(env, [r1, r2], routing_service=routing)
 
-    # Generator w godzinach szczytu (start_hour=11.0, średnio co 15 min w teście)
     generator = StochasticIncidentGenerator(seed=42, start_hour=11.0, peak_mean=15.0, off_peak_mean=30.0)
 
     collected: list = []
@@ -181,9 +185,65 @@ def test_simpy_integration_stochastic_stream():
         )
     )
 
-    # Uruchamiamy symulację do 180 minut
     env.run(until=180.0)
 
-    # Sprawdzamy, czy wezwania zostały wygenerowane i obsłużone
     assert len(collected) >= 2
     assert all(inc.created_at <= 180.0 for inc in collected)
+
+
+# ==============================================================================
+# NOWE TESTY ABSTRAKCJI (STRATEGY PATTERN & DEPENDENCY INJECTION)
+# ==============================================================================
+
+def test_constant_arrival_process():
+    """Weryfikacja podstawienia alternatywnej strategii czasu (deterministyczny ConstantArrivalProcess)."""
+    const_proc = ConstantArrivalProcess(interval_minutes=45.0)
+    gen = StochasticIncidentGenerator(arrival_process=const_proc)
+
+    # Niezależnie od godziny symulacji, czas oczekiwania wynosi dokładnie 45 minut
+    assert gen.get_next_delay(sim_time_minutes=0.0) == 45.0
+    assert gen.get_next_delay(sim_time_minutes=300.0) == 45.0
+    assert gen.get_next_delay(sim_time_minutes=900.0) == 45.0
+
+
+def test_custom_incident_type_registration():
+    """
+    Weryfikacja rozszerzalności kategoryzacji Triage:
+    rejestrujemy nowy rodzaj wypadku (np. ukąszenie żmii) i sprawdzamy, czy generator go wytwarza.
+    """
+    triage = GOPRTriageSampler()
+    snake_bite_spec = IncidentTypeSpec(
+        name="SNAKE_BITE",
+        category_code="VIPER",
+        priority=Priority.HIGH,
+        required_rescuers=1,
+        duration_sampler=lambda _: 35.0,
+        description="Ukąszenie przez żmiję zygzakowatą (podanie surowicy)"
+    )
+    triage.register_type(snake_bite_spec, weight=1.0)  # 100% szans na ten uraz
+
+    gen = StochasticIncidentGenerator(type_sampler=triage, seed=55)
+    incident = gen.generate_incident(sim_time_minutes=15.0)
+
+    assert incident.incident_type == "SNAKE_BITE"
+    assert incident.priority == Priority.HIGH
+    assert incident.required_rescuers == 1
+    assert incident.rescue_duration == 35.0
+    assert "żmiję" in incident.description
+
+
+def test_custom_spatial_sampler_injection():
+    """
+    Weryfikacja wstrzyknięcia niestandardowej strategii przestrzennej (AbstractSpatialSampler).
+    """
+    class MockSummitSampler(AbstractSpatialSampler):
+        def sample_location(self, incident_type: str = "TRAUMA", rng: Optional[np.random.Generator] = None) -> str:
+            return "Turbacz_Szczyt"
+
+        def get_probabilities(self, incident_type: str = "TRAUMA") -> Dict[str, float]:
+            return {"Turbacz_Szczyt": 1.0}
+
+    gen = StochasticIncidentGenerator(spatial_sampler=MockSummitSampler(), seed=11)
+    incident = gen.generate_incident(sim_time_minutes=50.0)
+
+    assert incident.target_node == "Turbacz_Szczyt"
