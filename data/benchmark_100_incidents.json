@@ -1,0 +1,1011 @@
+{
+  "seed": 42,
+  "metadata": {
+    "num_incidents": 100,
+    "seed": 42,
+    "start_hour": 8.0,
+    "total_span_minutes": 16132.17
+  },
+  "incidents": [
+    {
+      "incident_id": "BENCH_001",
+      "target_node": "Polana_Gabrowska",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 37.72,
+      "created_at": 577.01,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_002",
+      "target_node": "Jaworzyna_Kamienicka",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 84.09,
+      "created_at": 597.76,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_003",
+      "target_node": "Jaworzyna_Kamienicka",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 29.63,
+      "created_at": 616.79,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_004",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 65.18,
+      "created_at": 1032.3,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_005",
+      "target_node": "Polana_Gabrowska",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 19.92,
+      "created_at": 1054.28,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_006",
+      "target_node": "Obidowiec",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 22.9,
+      "created_at": 1353.66,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_007",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 16.06,
+      "created_at": 1511.05,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_008",
+      "target_node": "Przelecz_Knurowska",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 35.22,
+      "created_at": 1554.16,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_009",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 16.08,
+      "created_at": 1724.2,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_010",
+      "target_node": "Polana_Gabrowska",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 27.53,
+      "created_at": 1744.83,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_011",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 79.77,
+      "created_at": 1824.85,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_012",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 62.49,
+      "created_at": 1892.89,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_013",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 13.87,
+      "created_at": 1912.15,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_014",
+      "target_node": "Stare_Wierchy",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 34.49,
+      "created_at": 1922.19,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_015",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 25.91,
+      "created_at": 1990.36,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_016",
+      "target_node": "Kiczora",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 32.23,
+      "created_at": 2250.36,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_017",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 32.14,
+      "created_at": 2755.96,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_018",
+      "target_node": "Hala_Dluga",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 27.32,
+      "created_at": 2766.62,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_019",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 12.09,
+      "created_at": 3253.34,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_020",
+      "target_node": "Stare_Wierchy",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 32.11,
+      "created_at": 3406.55,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_021",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 36.65,
+      "created_at": 3721.91,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_022",
+      "target_node": "Hala_Dluga",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 18.55,
+      "created_at": 3750.15,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_023",
+      "target_node": "Polana_Gabrowska",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 26.17,
+      "created_at": 3842.82,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_024",
+      "target_node": "Polana_Gabrowska",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 14.76,
+      "created_at": 4152.89,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_025",
+      "target_node": "Przelecz_Knurowska",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 12.97,
+      "created_at": 4226.05,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_026",
+      "target_node": "Przelecz_Knurowska",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 28.15,
+      "created_at": 4468.18,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_027",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 4,
+      "required_rescuers": 1,
+      "rescue_duration": 40.37,
+      "created_at": 4579.21,
+      "incident_type": "CRITICAL_CARDIAC",
+      "description": "Stan krytyczny (nagłe zatrzymanie krążenia NZK / głęboka hipotermia / AED)"
+    },
+    {
+      "incident_id": "BENCH_028",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 65.79,
+      "created_at": 4592.36,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_029",
+      "target_node": "Stare_Wierchy",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 26.65,
+      "created_at": 4610.97,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_030",
+      "target_node": "Polana_Gabrowska",
+      "priority": 4,
+      "required_rescuers": 1,
+      "rescue_duration": 40.06,
+      "created_at": 4740.56,
+      "incident_type": "CRITICAL_CARDIAC",
+      "description": "Stan krytyczny (nagłe zatrzymanie krążenia NZK / głęboka hipotermia / AED)"
+    },
+    {
+      "incident_id": "BENCH_031",
+      "target_node": "Hala_Dluga",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 24.59,
+      "created_at": 4811.92,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_032",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 29.08,
+      "created_at": 4828.86,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_033",
+      "target_node": "Jaworzyna_Kamienicka",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 26.53,
+      "created_at": 4839.86,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_034",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 17.17,
+      "created_at": 4924.53,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_035",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 35.97,
+      "created_at": 6228.11,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_036",
+      "target_node": "Turbacz_Szczyt",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 40.17,
+      "created_at": 6287.14,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_037",
+      "target_node": "Turbacz_Szczyt",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 14.99,
+      "created_at": 6474.12,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_038",
+      "target_node": "Obidowiec",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 19.9,
+      "created_at": 6621.24,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_039",
+      "target_node": "Polana_Gabrowska",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 25.21,
+      "created_at": 6760.67,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_040",
+      "target_node": "Kiczora",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 34.88,
+      "created_at": 6848.12,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_041",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 54.93,
+      "created_at": 6893.95,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_042",
+      "target_node": "Stare_Wierchy",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 19.95,
+      "created_at": 7000.36,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_043",
+      "target_node": "Kudlon",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 58.03,
+      "created_at": 7183.98,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_044",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 51.08,
+      "created_at": 7317.55,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_045",
+      "target_node": "Jaworzyna_Kamienicka",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 95.81,
+      "created_at": 7591.73,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_046",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 69.03,
+      "created_at": 7648.79,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_047",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 29.67,
+      "created_at": 7784.07,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_048",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 21.92,
+      "created_at": 8120.96,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_049",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 50.34,
+      "created_at": 8154.63,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_050",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 53.03,
+      "created_at": 8220.35,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_051",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 68.08,
+      "created_at": 8326.94,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_052",
+      "target_node": "Polana_Gabrowska",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 13.14,
+      "created_at": 8328.89,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_053",
+      "target_node": "Turbacz_Szczyt",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 34.29,
+      "created_at": 8354.47,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_054",
+      "target_node": "Jaworzyna_Kamienicka",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 80.8,
+      "created_at": 8424.18,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_055",
+      "target_node": "Hala_Dluga",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 21.7,
+      "created_at": 8510.14,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_056",
+      "target_node": "Przelecz_Knurowska",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 33.76,
+      "created_at": 8666.05,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_057",
+      "target_node": "Kudlon",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 38.19,
+      "created_at": 8916.92,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_058",
+      "target_node": "Hala_Dluga",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 13.24,
+      "created_at": 8994.94,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_059",
+      "target_node": "Stare_Wierchy",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 39.99,
+      "created_at": 9116.48,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_060",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 4,
+      "required_rescuers": 1,
+      "rescue_duration": 28.06,
+      "created_at": 9140.41,
+      "incident_type": "CRITICAL_CARDIAC",
+      "description": "Stan krytyczny (nagłe zatrzymanie krążenia NZK / głęboka hipotermia / AED)"
+    },
+    {
+      "incident_id": "BENCH_061",
+      "target_node": "Turbacz_Szczyt",
+      "priority": 4,
+      "required_rescuers": 1,
+      "rescue_duration": 36.05,
+      "created_at": 9586.17,
+      "incident_type": "CRITICAL_CARDIAC",
+      "description": "Stan krytyczny (nagłe zatrzymanie krążenia NZK / głęboka hipotermia / AED)"
+    },
+    {
+      "incident_id": "BENCH_062",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 73.71,
+      "created_at": 10180.17,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_063",
+      "target_node": "Stare_Wierchy",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 33.58,
+      "created_at": 10300.52,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_064",
+      "target_node": "Kiczora",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 14.21,
+      "created_at": 10460.71,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_065",
+      "target_node": "Turbacz_Szczyt",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 12.23,
+      "created_at": 10563.43,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_066",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 58.95,
+      "created_at": 10580.39,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_067",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 14.62,
+      "created_at": 11321.32,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_068",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 12.04,
+      "created_at": 11443.43,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_069",
+      "target_node": "Hala_Dluga",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 34.06,
+      "created_at": 11496.5,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_070",
+      "target_node": "Stare_Wierchy",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 38.15,
+      "created_at": 11705.04,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_071",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 14.21,
+      "created_at": 11709.57,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_072",
+      "target_node": "Hala_Dluga",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 23.51,
+      "created_at": 11729.14,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_073",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 20.0,
+      "created_at": 11823.34,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_074",
+      "target_node": "Obidowiec",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 20.16,
+      "created_at": 11984.02,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_075",
+      "target_node": "Kudlon",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 85.49,
+      "created_at": 12119.59,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_076",
+      "target_node": "Turbacz_Szczyt",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 16.66,
+      "created_at": 12382.83,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_077",
+      "target_node": "Polana_Gabrowska",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 29.81,
+      "created_at": 12620.23,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_078",
+      "target_node": "Hala_Dluga",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 16.15,
+      "created_at": 12836.77,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_079",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 15.25,
+      "created_at": 12863.75,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_080",
+      "target_node": "Jaworzyna_Kamienicka",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 28.62,
+      "created_at": 13001.49,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_081",
+      "target_node": "Turbacz_Szczyt",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 29.06,
+      "created_at": 13098.99,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_082",
+      "target_node": "Turbacz_Szczyt",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 36.44,
+      "created_at": 13271.39,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_083",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 18.69,
+      "created_at": 13280.27,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_084",
+      "target_node": "Kudlon",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 48.89,
+      "created_at": 13294.47,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_085",
+      "target_node": "Jaworzyna_Kamienicka",
+      "priority": 4,
+      "required_rescuers": 1,
+      "rescue_duration": 31.66,
+      "created_at": 13300.26,
+      "incident_type": "CRITICAL_CARDIAC",
+      "description": "Stan krytyczny (nagłe zatrzymanie krążenia NZK / głęboka hipotermia / AED)"
+    },
+    {
+      "incident_id": "BENCH_086",
+      "target_node": "Kudlon",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 87.21,
+      "created_at": 13311.12,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_087",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 4,
+      "required_rescuers": 1,
+      "rescue_duration": 53.85,
+      "created_at": 13369.88,
+      "incident_type": "CRITICAL_CARDIAC",
+      "description": "Stan krytyczny (nagłe zatrzymanie krążenia NZK / głęboka hipotermia / AED)"
+    },
+    {
+      "incident_id": "BENCH_088",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 17.41,
+      "created_at": 13534.32,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_089",
+      "target_node": "Turbacz_Szczyt",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 30.85,
+      "created_at": 13605.08,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_090",
+      "target_node": "Turbacz_Szczyt",
+      "priority": 4,
+      "required_rescuers": 1,
+      "rescue_duration": 41.15,
+      "created_at": 14106.08,
+      "incident_type": "CRITICAL_CARDIAC",
+      "description": "Stan krytyczny (nagłe zatrzymanie krążenia NZK / głęboka hipotermia / AED)"
+    },
+    {
+      "incident_id": "BENCH_091",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 12.96,
+      "created_at": 14267.4,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_092",
+      "target_node": "Polana_Gabrowska",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 35.8,
+      "created_at": 14740.65,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_093",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 84.19,
+      "created_at": 14748.68,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_094",
+      "target_node": "Schronisko_Turbacz",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 13.44,
+      "created_at": 14778.21,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    },
+    {
+      "incident_id": "BENCH_095",
+      "target_node": "Kiczora",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 29.79,
+      "created_at": 14964.64,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_096",
+      "target_node": "Kudlon",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 85.56,
+      "created_at": 15287.24,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_097",
+      "target_node": "Kiczora",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 80.96,
+      "created_at": 15446.17,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_098",
+      "target_node": "Dolina_Kamienicy_Wiatrolomy",
+      "priority": 2,
+      "required_rescuers": 1,
+      "rescue_duration": 75.73,
+      "created_at": 15523.25,
+      "incident_type": "SEARCH",
+      "description": "Poszukiwanie zaginionego turysty poza szlakiem (procedura WiSAR)"
+    },
+    {
+      "incident_id": "BENCH_099",
+      "target_node": "Hala_Dluga",
+      "priority": 3,
+      "required_rescuers": 2,
+      "rescue_duration": 21.75,
+      "created_at": 15808.66,
+      "incident_type": "MAJOR_TRAUMA",
+      "description": "Poważny uraz (złamanie otwarte kości, uraz kręgosłupa - wymóg noszy)"
+    },
+    {
+      "incident_id": "BENCH_100",
+      "target_node": "Hala_Dluga",
+      "priority": 1,
+      "required_rescuers": 1,
+      "rescue_duration": 15.99,
+      "created_at": 16132.17,
+      "incident_type": "MINOR_INJURY",
+      "description": "Drobna kontuzja (skręcenie stawu skokowego, stłuczenie, odwodnienie)"
+    }
+  ]
+}

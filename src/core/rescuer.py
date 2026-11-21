@@ -112,6 +112,8 @@ class Rescuer:
                     f"[{self.env.now:.1f} min] {self.agent_id}: Rozpoczyna działania ratownicze ({incident.rescue_duration} min)...")
                 yield self.env.timeout(incident.rescue_duration)
                 incident.is_resolved = True
+                if incident.resolved_time is None:
+                    incident.resolved_time = self.env.now
                 print(f"[{self.env.now:.1f} min] {self.agent_id}: Zakończył akcję ratunkową {incident.incident_id}!")
                 self.current_incident = None
                 # Sprawdzamy, czy dyspozytor ma kolejne zgłoszenie w kolejce:

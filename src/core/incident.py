@@ -1,5 +1,5 @@
 import enum
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Optional
 import simpy
 from dataclasses import dataclass, field
 
@@ -23,9 +23,18 @@ class Incident:
     assigned_rescuers: List[str] = field(default_factory = list)
     incident_type: str = "TRAUMA"
     description: str = ""
+    first_arrival_time: Optional[float] = None
+    resolved_time: Optional[float] = None
 
     arrival_events: List[simpy.Event] = field(default_factory=list)
     _rescuer_arrival_map: Dict[str, simpy.Event] = field(default_factory=dict)
+
+    @property
+    def response_time(self) -> Optional[float]:
+        """Czas reakcji: od zgłoszenia do dotarcia pierwszego ratownika na miejsce."""
+        if self.first_arrival_time is not None:
+            return round(self.first_arrival_time - self.created_at, 2)
+        return None
 
     def init_events(self, env: simpy.Environment) -> None:
         """Inicjalizuje zdarzenia dotarcia dla wymaganej liczby ratowników."""
@@ -42,6 +51,9 @@ class Incident:
         """
 
         self.init_events(env)
+
+        if self.first_arrival_time is None:
+            self.first_arrival_time = env.now
 
         if rescuer_id not in self._rescuer_arrival_map:
             assigned_idx = len(self._rescuer_arrival_map)
