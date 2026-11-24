@@ -26,24 +26,37 @@
 ---
 
 ## 2. ZADANIA DLA WIKTORA BUKOWSKIEGO
-**Rola:** Modelowanie Zachowania Zaginionego w Terenie (WiSAR)  
-**Docelowy plik:** `src/wisar/lost_person.py`  
+**Rola:** Modelowanie Zachowania Zaginionego w Terenie (WiSAR / SAR)  
+**Docelowy plik:** `src/sar/lost_person.py` *(folder `src/sar/` jest już utworzony w repozytorium)*  
 **Plik testowy:** `tests/test_lost_person.py`
 
 ### Co masz konkretnie zrobić w ciągu najbliższych 2 tygodni:
 - [ ] **Krok 1: Struktura klasy `LostPerson`**  
   Stwórz klasę `LostPerson` reprezentującą zaginionego turystę.  
-  Pola: `current_node`, `last_known_point` (LKP), `time_lost`, `body_temperature` lub `condition_level` (stan wychłodzenia), `is_found` (flaga znalezienia).
+  Pola: `current_node`, `lkp_node` (Last Known Point), `lost_delay_min` (czas od zagubienia do zgłoszenia), `speed_factor` (np. `0.5–0.7x`, wolniejszy marsz zdezorientowanej osoby), `energy` / `body_temperature` (stan wychłodzenia), `is_mobile` (czy jeszcze ma siły iść), `is_found` (flaga znalezienia).
 - [ ] **Krok 2: Algorytm ruchu zaginionego w oparciu o profil wysokościowy DEM**  
-  Zaimplementuj metodę `step(graph)` wywoływaną co określony interwał (np. co 15–30 minut):
-  * Zaginiony sprawdza sąsiednie węzły w grafie Gorców i ich wysokości n.p.m. ($z$).
-  * **60% szans:** Schodzi w dół zbocza (wybiera węzeł o niższym $z$ – podążanie za grawitacją w stronę dolin potoków).
-  * **30% szans:** Idzie po ścieżce/grani (losowy sąsiedni węzeł o zbliżonej wysokości).
-  * **10% szans:** Zostaje w miejscu (brak sił, przeczekiwanie, hipotermia).
-- [ ] **Krok 3: Spadek formy zaginionego w warunkach zimowych**  
-  Dodaj prosty model wychłodzenia: przy ujemnych temperaturach i wietrze stan zaginionego z czasem maleje (co w kolejnych sprintach wpłynie na pilność akcji).
-- [ ] **Krok 4: Testy jednostkowe**  
-  Stwórz test w `tests/test_lost_person.py` weryfikujący, czy zaginiony nie wyskakuje poza graf i prawidłowo przemieszcza się pomiędzy sąsiadującymi węzłami.
+  Zaimplementuj metodę `choose_next_node(graph)` oraz krok przejścia po krawędziach:
+  * Zaginiony sprawdza sąsiednie węzły w grafie Gorców i ich wysokości n.p.m. ($z$ w `GORCE_TRAIL_NODES` lub grafie DEM).
+  * **55–60% szans:** Schodzi w dół zbocza (wybiera sąsiedni węzeł o niższym $z$ – podążanie za grawitacją w stronę dolin potoków).
+  * **25–30% szans:** Idzie po ścieżce/grani (losowy sąsiedni węzeł o zbliżonej wysokości).
+  * **10–20% szans (rośnie wraz z czasem na mrozie):** Zostaje w miejscu (brak sił, przeczekiwanie, postępująca hipotermia).
+- [ ] **Krok 3: Model czasu przed zgłoszeniem + proces SimPy "na żywo"**  
+  W rzeczywistości zgłoszenie o zaginięciu wpływa np. po **30–120 minutach** od momentu zagubienia, a w tym czasie zaginiony już się przemieszcza. Aby nie psuć głównego zegara SimPy ani `BenchmarkDataset`, zaimplementuj to w **2 fazach**:
+  1. **`simulate_pre_report_movement(delay_min, graph, routing_service)` (przed startem akcji):**  
+     W chwili przyjęcia zgłoszenia ($t_{\text{report}}$) puszczasz na obiekcie `LostPerson` krótką wewnętrzną pętlę po czasie `delay_min` (np. 60 min). Dzięki temu już na starcie akcji ratunkowej zaginiony nie stoi w punkcie LKP (np. na Turbaczu), tylko zdążył zejść o 1–2 węzły w stronę dolin!
+  2. **`wander_process(env, graph, routing_service)` (ruch równoległy w SimPy podczas akcji):**  
+     Po zgłoszeniu uruchamiamy `env.process(lost_person.wander_process(...))`. Zaginiony w każdym kroku wywołuje `yield env.timeout(t_edge)` (liczone przez `routing_service.get_edge_travel_time` z jego `speed_factor`) i aktualizuje `current_node`, dopóki `is_mobile == True` oraz `not is_found`.
+- [ ] **Krok 4: Spadek formy zaginionego w warunkach zimowych**  
+  Dodaj prosty model wychłodzenia zależny od `WeatherConditions`: z upływem minut na śniegu/wietrze spada energia zaginionego, aż przy wyczerpaniu ustawia `is_mobile = False` (siada pod drzewem i czeka na odnalezienie).
+- [ ] **Krok 5: Testy jednostkowe**  
+  Stwórz test w `tests/test_lost_person.py` weryfikujący:
+  * czy `simulate_pre_report_movement` przesuwa zaginionego po sąsiednich węzłach grafu w ramach zadanego czasu,
+  * czy zaginiony nie wyskakuje poza graf i preferuje schodzenie w dół ($z_{\text{next}} < z_{\text{curr}}$),
+  * czy po ustawieniu `is_found = True` proces `wander_process` w SimPy bezpiecznie się zatrzymuje.
+
+> 💡 **Notatka integracyjna na koniec (dla połączenia z Ratownikiem / Dyspozytorem):**  
+> * W incydencie typu `SEARCH` pole `incident.target_node` będzie oznaczać wyłącznie **LKP** (punkt znany dyspozytorowi), natomiast prawdziwą ukrytą pozycją będzie `lost_person.current_node`.  
+> * W `src/core/rescuer.py` jest już przygotowany stan `RescuerState.SEARCHING` – w kolejnym kroku (Sprint 2) ratownik po dotarciu do LKP przejdzie w ten stan i zacznie przeszukiwać sąsiednie węzły (najpierw te niżej położone – najwyższe POA), aż trafi na `rescuer.current_node == lost_person.current_node`.
 
 ---
 
