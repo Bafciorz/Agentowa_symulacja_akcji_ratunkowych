@@ -5,7 +5,6 @@ import networkx as nx
 
 from src.routing.routing_interface import AbstractRoutingService
 from src.routing.weather_conditions import WeatherConditions
-from data.mappers.terrain_mapper import TerrainGraphMapper
 
 
 class TerrainRoutingService(AbstractRoutingService):
@@ -18,6 +17,8 @@ class TerrainRoutingService(AbstractRoutingService):
 
     def __init__(self, graph_or_path: Union[nx.DiGraph, str, Path]):
         if isinstance(graph_or_path, (str, Path)):
+            from data.mappers.terrain_mapper import TerrainGraphMapper
+
             mapper = TerrainGraphMapper()
             self.graph: nx.DiGraph = mapper.load_graph(str(graph_or_path))
         elif isinstance(graph_or_path, nx.DiGraph):
