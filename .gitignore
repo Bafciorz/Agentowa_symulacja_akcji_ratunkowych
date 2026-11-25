@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# IDE and editors
+# IDE and editors (dla tomka)
 .idea/
 .vscode/
 *.swp
